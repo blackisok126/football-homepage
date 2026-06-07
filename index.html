@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="足球赛事个人主页，查看今日热门足球赛事和个人联系方式。"
+    >
+    <title>绿茵今日 | 足球赛事个人主页</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero__content">
+          <p class="eyebrow">Football Matchday</p>
+          <h1 id="page-title">绿茵今日</h1>
+          <p class="hero__lead">
+            欢迎来到我的赛事分享主页。这里会整理当天值得关注的足球比赛，
+            扫描下方二维码，一起交流赛程、看法和观赛提醒。
+          </p>
+          <a class="hero__cta" href="#qr-section">查看二维码</a>
+          <div class="hero__meta" aria-label="今日信息">
+            <span id="todayLabel">今日赛程</span>
+            <span id="matchCountLabel">载入中</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-grid" aria-label="主页内容">
+        <section class="panel match-panel" aria-labelledby="matches-title">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Today</p>
+              <h2 id="matches-title">今日热门赛事</h2>
+            </div>
+            <p class="updated-time" id="updatedTime">正在读取赛程</p>
+          </div>
+
+          <div class="notice" id="notice" hidden></div>
+          <div class="match-groups" id="matchGroups" aria-live="polite"></div>
+        </section>
+
+        <aside class="panel profile-panel" id="qr-section" aria-labelledby="profile-title">
+          <div class="section-heading section-heading--stacked">
+            <p class="section-kicker">QR Code</p>
+            <h2 id="profile-title">二维码</h2>
+          </div>
+
+          <div class="qr-frame">
+            <img
+              id="qrImage"
+              class="qr-image"
+              src="assets/qr.png"
+              alt="二维码"
+              hidden
+            >
+            <div class="qr-placeholder" id="qrPlaceholder">
+              <span>二维码待上传</span>
+            </div>
+          </div>
+
+          <div class="profile-copy">
+            <strong>一起聊球</strong>
+            <p>关注今日焦点赛程、赛前动态和观赛提醒。</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="main.js"></script>
+  </body>
+</html>

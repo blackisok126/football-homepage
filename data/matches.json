@@ -1,0 +1,88 @@
+{
+  "date": "2026-06-07",
+  "timezone": "Asia/Shanghai",
+  "source": "https://jc.zhcw.com/index.php?act=zqjsq_hhgg",
+  "updatedAt": "2026-06-07T08:39:37.505Z",
+  "matches": [
+    {
+      "matchNo": "周日201",
+      "competition": "国际赛",
+      "kickoffTime": "2026-06-07T18:45:00.000Z",
+      "homeTeam": "克罗地亚",
+      "awayTeam": "斯洛文尼",
+      "status": "未开始",
+      "handicap": "-1",
+      "odds": {
+        "win": "1.26",
+        "draw": "4.45",
+        "lose": "9.00"
+      },
+      "handicapOdds": {
+        "win": "2.05",
+        "draw": "3.08",
+        "lose": "3.15"
+      },
+      "sourceUrl": "https://jc.zhcw.com/index.php?act=zqjsq_hhgg"
+    },
+    {
+      "matchNo": "周日202",
+      "competition": "国际赛",
+      "kickoffTime": "2026-06-07T19:00:00.000Z",
+      "homeTeam": "摩洛哥",
+      "awayTeam": "挪威",
+      "status": "未开始",
+      "handicap": "+1",
+      "odds": {
+        "win": "3.05",
+        "draw": "2.92",
+        "lose": "2.18"
+      },
+      "handicapOdds": {
+        "win": "1.53",
+        "draw": "3.75",
+        "lose": "4.78"
+      },
+      "sourceUrl": "https://jc.zhcw.com/index.php?act=zqjsq_hhgg"
+    },
+    {
+      "matchNo": "周日203",
+      "competition": "国际赛",
+      "kickoffTime": "2026-06-07T19:00:00.000Z",
+      "homeTeam": "希腊",
+      "awayTeam": "意大利",
+      "status": "未开始",
+      "handicap": "-1",
+      "odds": {
+        "win": "2.05",
+        "draw": "3.10",
+        "lose": "3.13"
+      },
+      "handicapOdds": {
+        "win": "4.45",
+        "draw": "3.62",
+        "lose": "1.59"
+      },
+      "sourceUrl": "https://jc.zhcw.com/index.php?act=zqjsq_hhgg"
+    },
+    {
+      "matchNo": "周日204",
+      "competition": "国际赛",
+      "kickoffTime": "2026-06-07T23:00:00.000Z",
+      "homeTeam": "哥伦比亚",
+      "awayTeam": "约旦",
+      "status": "未开始",
+      "handicap": "-2",
+      "odds": {
+        "win": "1.15",
+        "draw": "5.60",
+        "lose": "12.50"
+      },
+      "handicapOdds": {
+        "win": "2.60",
+        "draw": "3.70",
+        "lose": "2.11"
+      },
+      "sourceUrl": "https://jc.zhcw.com/index.php?act=zqjsq_hhgg"
+    }
+  ]
+}

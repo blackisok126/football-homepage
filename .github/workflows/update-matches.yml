@@ -1,0 +1,33 @@
+name: Update football matches
+
+on:
+  schedule:
+    - cron: "0 0,4,12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-matches:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch matches
+        run: node scripts/fetch-matches.mjs
+        env:
+          MATCH_SOURCE_URL: ${{ vars.MATCH_SOURCE_URL }}
+
+      - name: Commit updated data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update football matches"
+          file_pattern: data/matches.json
