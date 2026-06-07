@@ -1,4 +1,5 @@
 const DATA_URL = "data/matches.json";
+const MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Asia/Shanghai",
@@ -6,14 +7,6 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   month: "long",
   day: "numeric",
   weekday: "long",
-});
-
-const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Asia/Shanghai",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
 });
 
 const matchDateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
@@ -27,7 +20,6 @@ const matchDateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
 
 const todayLabel = document.querySelector("#todayLabel");
 const matchCountLabel = document.querySelector("#matchCountLabel");
-const updatedTime = document.querySelector("#updatedTime");
 const notice = document.querySelector("#notice");
 const matchGroups = document.querySelector("#matchGroups");
 const qrFrame = document.querySelector("#qrFrame");
@@ -36,11 +28,21 @@ const qrPlaceholder = document.querySelector("#qrPlaceholder");
 const qrDialog = document.querySelector("#qrDialog");
 const qrDialogClose = document.querySelector("#qrDialogClose");
 const qrDialogImage = document.querySelector("#qrDialogImage");
-const qrDialogDownload = document.querySelector(".qr-dialog__download");
+const qrSaveButton = document.querySelector("#qrSaveButton");
 
-todayLabel.textContent = dateFormatter.format(new Date());
+let currentMatches = [];
+
+updateTodayLabel();
+window.setInterval(updateTodayLabel, 60 * 1000);
+window.setInterval(refreshMatchClock, 60 * 1000);
 
 qrImage.addEventListener("error", () => {
+  if (!qrImage.dataset.fallbackTried && qrImage.dataset.saveSrc) {
+    qrImage.dataset.fallbackTried = "true";
+    qrImage.src = qrImage.dataset.saveSrc;
+    return;
+  }
+
   qrFrame.classList.remove("qr-frame--loaded");
   qrFrame.classList.remove("qr-frame--interactive");
   qrFrame.style.removeProperty("--qr-aspect");
@@ -51,6 +53,8 @@ qrImage.addEventListener("error", () => {
 });
 
 qrImage.addEventListener("load", () => {
+  delete qrImage.dataset.fallbackTried;
+
   if (qrImage.naturalWidth && qrImage.naturalHeight) {
     qrFrame.style.setProperty(
       "--qr-aspect",
@@ -71,8 +75,8 @@ qrFrame.addEventListener("click", () => {
     return;
   }
 
-  qrDialogImage.src = qrImage.src;
-  qrDialogDownload.href = qrImage.src;
+  qrDialogImage.src = qrImage.currentSrc || qrImage.src;
+  qrDialogImage.dataset.saveSrc = qrImage.dataset.saveSrc || qrImage.src;
   qrDialog.showModal();
 });
 
@@ -93,7 +97,13 @@ qrDialog.addEventListener("click", (event) => {
   }
 });
 
+qrSaveButton.addEventListener("click", saveQrImage);
+
 loadMatches();
+
+function updateTodayLabel() {
+  todayLabel.textContent = dateFormatter.format(new Date());
+}
 
 async function loadMatches() {
   try {
@@ -106,12 +116,14 @@ async function loadMatches() {
     const payload = await response.json();
     const matches = normalizeMatches(payload.matches);
 
+    currentMatches = matches;
     renderMeta(payload, matches);
     renderMatches(matches);
   } catch (error) {
     const fallback = getFallbackPayload();
     const matches = normalizeMatches(fallback.matches);
 
+    currentMatches = matches;
     renderMeta(fallback, matches);
     showNotice("暂时无法读取赛程文件，正在展示示例赛程。");
     renderMatches(matches);
@@ -143,15 +155,6 @@ function normalizeMatches(matches = []) {
 
 function renderMeta(payload, matches) {
   matchCountLabel.textContent = `${matches.length} 场热门赛事`;
-
-  if (payload.updatedAt) {
-    updatedTime.textContent = `更新于 ${timeFormatter.format(
-      new Date(payload.updatedAt),
-    )}`;
-  } else {
-    updatedTime.textContent = "等待更新";
-  }
-
 }
 
 function renderMatches(matches) {
@@ -194,6 +197,7 @@ function groupByCompetition(matches) {
 }
 
 function createMatchCard(match) {
+  const matchState = getMatchState(match);
   const card = document.createElement("article");
   card.className = "match-card";
 
@@ -210,6 +214,7 @@ function createMatchCard(match) {
   detailLine.append(
     createDetailItem("编号", match.matchNo || "待定"),
     createDetailItem("开赛", formatMatchDateTime(match.kickoffTime)),
+    createDetailItem("距开赛", formatCountdown(match, matchState), "countdown"),
   );
 
   const teamsLine = document.createElement("div");
@@ -238,8 +243,8 @@ function createMatchCard(match) {
   }
 
   const status = document.createElement("span");
-  status.className = `status ${getStatusClass(match.status)}`;
-  status.textContent = match.status || "未开始";
+  status.className = `status ${getStatusClass(matchState.status)}`;
+  status.textContent = matchState.status;
 
   card.append(kickoff, teams, status);
   return card;
@@ -259,9 +264,9 @@ function createVersus() {
   return span;
 }
 
-function createDetailItem(label, value) {
+function createDetailItem(label, value, variant = "") {
   const span = document.createElement("span");
-  span.className = "match-detail";
+  span.className = variant ? `match-detail match-detail--${variant}` : "match-detail";
   span.textContent = `${label} ${value}`;
   return span;
 }
@@ -334,15 +339,133 @@ function formatMatchDateTime(kickoffTime) {
 }
 
 function getStatusClass(status = "") {
-  if (/直播|进行|上半场|下半场/.test(status)) {
+  if (status === "进行中") {
     return "status--live";
   }
 
-  if (/完场|结束/.test(status)) {
+  if (status === "已结束") {
     return "status--finished";
   }
 
   return "";
+}
+
+function getMatchState(match) {
+  const fetchedStatus = normalizeStatus(match.status);
+  const kickoffTime = Date.parse(match.kickoffTime || "");
+
+  if (fetchedStatus === "已结束" || fetchedStatus === "进行中") {
+    return { status: fetchedStatus, kickoffTime };
+  }
+
+  if (Number.isNaN(kickoffTime)) {
+    return { status: fetchedStatus, kickoffTime };
+  }
+
+  const now = Date.now();
+
+  if (now < kickoffTime) {
+    return { status: "未开始", kickoffTime };
+  }
+
+  if (now < kickoffTime + MATCH_DURATION_MS) {
+    return { status: "进行中", kickoffTime };
+  }
+
+  return { status: "已结束", kickoffTime };
+}
+
+function normalizeStatus(status = "") {
+  if (/完场|结束|已结束|取消|延期/.test(status)) {
+    return "已结束";
+  }
+
+  if (/直播|进行|上半场|下半场|中场|加时|点球/.test(status)) {
+    return "进行中";
+  }
+
+  return "未开始";
+}
+
+function formatCountdown(match, matchState = getMatchState(match)) {
+  if (matchState.status === "进行中") {
+    return "比赛进行中";
+  }
+
+  if (matchState.status === "已结束") {
+    return "比赛已结束";
+  }
+
+  if (Number.isNaN(matchState.kickoffTime)) {
+    return "待定";
+  }
+
+  const remainingMs = Math.max(0, matchState.kickoffTime - Date.now());
+  const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
+
+  if (remainingMinutes <= 0) {
+    return "即将开始";
+  }
+
+  const days = Math.floor(remainingMinutes / (24 * 60));
+  const hours = Math.floor((remainingMinutes % (24 * 60)) / 60);
+  const minutes = remainingMinutes % 60;
+
+  if (days > 0) {
+    return `${days}天${hours}小时`;
+  }
+
+  if (hours > 0) {
+    return `${hours}小时${minutes}分`;
+  }
+
+  return `${minutes}分钟`;
+}
+
+function refreshMatchClock() {
+  updateTodayLabel();
+
+  if (currentMatches.length) {
+    renderMatches(currentMatches);
+  }
+}
+
+async function saveQrImage() {
+  const imageUrl = qrDialogImage.dataset.saveSrc || qrDialogImage.src;
+
+  qrSaveButton.disabled = true;
+
+  try {
+    const response = await fetch(imageUrl);
+
+    if (!response.ok) {
+      throw new Error("二维码读取失败");
+    }
+
+    const blob = await response.blob();
+    const file = new File([blob], "qr.png", { type: blob.type || "image/png" });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: "二维码" });
+    } else {
+      downloadQrImage(imageUrl);
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      downloadQrImage(imageUrl);
+    }
+  } finally {
+    qrSaveButton.disabled = false;
+  }
+}
+
+function downloadQrImage(imageUrl) {
+  const link = document.createElement("a");
+  link.href = imageUrl;
+  link.download = "qr.png";
+  document.body.append(link);
+  link.click();
+  link.remove();
 }
 
 function renderEmpty(message) {

@@ -35,7 +35,6 @@
               <p class="section-kicker">Today</p>
               <h2 id="matches-title">今日热门赛事</h2>
             </div>
-            <p class="updated-time" id="updatedTime">正在读取赛程</p>
           </div>
 
           <div class="notice" id="notice" hidden></div>
@@ -52,8 +51,11 @@
             <img
               id="qrImage"
               class="qr-image"
-              src="assets/qr.PNG"
+              src="assets/qr-display.png"
+              data-save-src="assets/qr.PNG"
               alt="二维码"
+              loading="lazy"
+              decoding="async"
               hidden
             >
             <div class="qr-placeholder" id="qrPlaceholder">
@@ -63,7 +65,7 @@
 
           <div class="profile-copy">
             <strong>一起聊球</strong>
-            <p>关注今日焦点赛程、赛前动态和观赛提醒。</p>
+            <p>扫码交流赛程、看法和观赛提醒。</p>
           </div>
         </aside>
       </section>
@@ -77,8 +79,15 @@
             ×
           </button>
         </div>
-        <img class="qr-dialog__image" id="qrDialogImage" src="assets/qr.PNG" alt="二维码放大预览">
-        <a class="qr-dialog__download" href="assets/qr.PNG" download="qr.png">下载二维码</a>
+        <img
+          class="qr-dialog__image"
+          id="qrDialogImage"
+          src="assets/qr-display.png"
+          data-save-src="assets/qr.PNG"
+          alt="二维码放大预览"
+          decoding="async"
+        >
+        <button class="qr-dialog__download" id="qrSaveButton" type="button">保存到相册</button>
       </div>
     </dialog>
 

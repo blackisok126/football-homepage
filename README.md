@@ -33,4 +33,12 @@ MATCH_SOURCE_URL="https://example.com/a,https://example.com/b" node scripts/fetc
 
 ## 上传二维码
 
-把二维码图片放到 `assets/qr.png`。如果图片不存在，首页会显示“二维码待上传”的占位。
+把二维码原图放到 `assets/qr.PNG`。如果图片不存在，首页会显示“二维码待上传”的占位。
+
+页面会优先加载轻量展示图 `assets/qr-display.png`，点击保存时仍使用原图 `assets/qr.PNG`。上传或替换二维码后，可以手动生成展示图：
+
+```bash
+node scripts/prepare-qr-assets.mjs
+```
+
+仓库推送 `assets/qr.PNG` 后，GitHub Actions 也会自动生成并提交新的 `assets/qr-display.png`。
