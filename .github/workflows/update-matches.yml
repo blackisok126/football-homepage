@@ -2,7 +2,7 @@ name: Update football matches
 
 on:
   schedule:
-    - cron: "0 0,4,12 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:

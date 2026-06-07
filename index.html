@@ -48,7 +48,7 @@
             <h2 id="profile-title">二维码</h2>
           </div>
 
-          <div class="qr-frame">
+          <div class="qr-frame" id="qrFrame">
             <img
               id="qrImage"
               class="qr-image"
@@ -68,6 +68,19 @@
         </aside>
       </section>
     </main>
+
+    <dialog class="qr-dialog" id="qrDialog" aria-labelledby="qrDialogTitle">
+      <div class="qr-dialog__panel">
+        <div class="qr-dialog__header">
+          <h2 id="qrDialogTitle">二维码</h2>
+          <button class="qr-dialog__close" id="qrDialogClose" type="button" aria-label="关闭二维码预览">
+            ×
+          </button>
+        </div>
+        <img class="qr-dialog__image" id="qrDialogImage" src="assets/qr.png" alt="二维码放大预览">
+        <a class="qr-dialog__download" href="assets/qr.png" download="qr.png">下载二维码</a>
+      </div>
+    </dialog>
 
     <script src="main.js"></script>
   </body>

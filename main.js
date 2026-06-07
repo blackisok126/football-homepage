@@ -30,19 +30,67 @@ const matchCountLabel = document.querySelector("#matchCountLabel");
 const updatedTime = document.querySelector("#updatedTime");
 const notice = document.querySelector("#notice");
 const matchGroups = document.querySelector("#matchGroups");
+const qrFrame = document.querySelector("#qrFrame");
 const qrImage = document.querySelector("#qrImage");
 const qrPlaceholder = document.querySelector("#qrPlaceholder");
+const qrDialog = document.querySelector("#qrDialog");
+const qrDialogClose = document.querySelector("#qrDialogClose");
+const qrDialogImage = document.querySelector("#qrDialogImage");
+const qrDialogDownload = document.querySelector(".qr-dialog__download");
 
 todayLabel.textContent = dateFormatter.format(new Date());
 
 qrImage.addEventListener("error", () => {
+  qrFrame.classList.remove("qr-frame--loaded");
+  qrFrame.classList.remove("qr-frame--interactive");
+  qrFrame.style.removeProperty("--qr-aspect");
+  qrFrame.removeAttribute("tabindex");
+  qrFrame.removeAttribute("role");
   qrImage.hidden = true;
   qrPlaceholder.hidden = false;
 });
 
 qrImage.addEventListener("load", () => {
+  if (qrImage.naturalWidth && qrImage.naturalHeight) {
+    qrFrame.style.setProperty(
+      "--qr-aspect",
+      `${qrImage.naturalWidth} / ${qrImage.naturalHeight}`,
+    );
+  }
+
+  qrFrame.classList.add("qr-frame--loaded");
   qrImage.hidden = false;
   qrPlaceholder.hidden = true;
+  qrFrame.classList.add("qr-frame--interactive");
+  qrFrame.setAttribute("tabindex", "0");
+  qrFrame.setAttribute("role", "button");
+});
+
+qrFrame.addEventListener("click", () => {
+  if (qrImage.hidden) {
+    return;
+  }
+
+  qrDialogImage.src = qrImage.src;
+  qrDialogDownload.href = qrImage.src;
+  qrDialog.showModal();
+});
+
+qrFrame.addEventListener("keydown", (event) => {
+  if ((event.key === "Enter" || event.key === " ") && !qrImage.hidden) {
+    event.preventDefault();
+    qrFrame.click();
+  }
+});
+
+qrDialogClose.addEventListener("click", () => {
+  qrDialog.close();
+});
+
+qrDialog.addEventListener("click", (event) => {
+  if (event.target === qrDialog) {
+    qrDialog.close();
+  }
 });
 
 loadMatches();
