@@ -1,15 +1,11 @@
-import { readFile } from "node:fs/promises";
 import { SOURCE_STATUS } from "../types.js";
 import { adaptLegacyPayload } from "../matchAdapter.js";
-
-const LEGACY_DATA_URL = new URL("../../../../data/matches.json", import.meta.url);
+import legacyPayload from "../../../../data/matches.json" with { type: "json" };
 
 export async function getLocalChineseProviderRecords() {
-  const rawText = await readFile(LEGACY_DATA_URL, "utf8");
-  const payload = JSON.parse(rawText);
   const updatedAt = new Date().toISOString();
-  const matches = adaptLegacyPayload(payload, {
-    source: payload.source || "local-chinese-cache",
+  const matches = adaptLegacyPayload(legacyPayload, {
+    source: legacyPayload.source || "local-chinese-cache",
     sourceStatus: SOURCE_STATUS.CACHE,
     updatedAt,
   });
@@ -20,8 +16,10 @@ export async function getLocalChineseProviderRecords() {
     updatedAt,
     records: matches.map((match) => ({
       match,
-      raw: payload.matches?.find((legacyMatch) => match.homeTeam === legacyMatch.homeTeam) || null,
+      raw:
+        legacyPayload.matches?.find((legacyMatch) => match.homeTeam === legacyMatch.homeTeam) ||
+        null,
     })),
-    raw: payload,
+    raw: legacyPayload,
   };
 }
