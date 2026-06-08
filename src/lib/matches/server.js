@@ -2,7 +2,9 @@ import { SOURCE_STATUS } from "./types.js";
 import { adaptSupabaseRow, formatMatchDate, toSupabaseRow } from "./matchAdapter.js";
 import { createServerSupabaseClient, hasServerSupabaseEnv } from "../supabase.js";
 import { getApiFootballProviderRecords } from "./providers/apiFootballProvider.js";
+import { getLocalChineseProviderRecords } from "./providers/localChineseProvider.js";
 import { getMockMatchesPayload, getMockProviderRecords } from "./providers/mockProvider.js";
+import { getSportteryProviderRecords } from "./providers/sportteryProvider.js";
 
 export function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -38,6 +40,7 @@ export async function buildMatchesTodayPayload({ env = process.env } = {}) {
       .from("matches")
       .select("*")
       .eq("match_date", today)
+      .neq("source", "api-football")
       .order("kickoff_time", { ascending: true });
 
     if (error) {
@@ -75,7 +78,7 @@ export async function syncMatches({ env = process.env, fetchImpl = fetch } = {})
   let providerResult;
 
   try {
-    if (env.FOOTBALL_API_KEY) {
+    if (env.MATCH_PROVIDER === "api-football" && env.FOOTBALL_API_KEY) {
       providerResult = await getApiFootballProviderRecords({
         apiKey: env.FOOTBALL_API_KEY,
         baseUrl: env.FOOTBALL_API_BASE_URL,
@@ -83,14 +86,16 @@ export async function syncMatches({ env = process.env, fetchImpl = fetch } = {})
         fetchImpl,
       });
     } else {
-      providerResult = await getMockProviderRecords({
-        message: "未配置 FOOTBALL_API_KEY，已使用演示数据完成同步。",
-      });
+      providerResult = await getSportteryProviderRecords({ fetchImpl });
     }
   } catch (error) {
-    providerResult = await getMockProviderRecords({
-      message: "真实数据源暂时不可用，已回退到演示数据。",
-    });
+    try {
+      providerResult = await getLocalChineseProviderRecords();
+    } catch {
+      providerResult = await getMockProviderRecords({
+        message: "中国体育彩票赛事暂时不可用，已回退到演示数据。",
+      });
+    }
   }
 
   const matches = providerResult.records.map((record) => record.match);
@@ -119,6 +124,10 @@ export async function syncMatches({ env = process.env, fetchImpl = fetch } = {})
       throw error;
     }
 
+    if (providerResult.source !== "api-football") {
+      await supabase.from("matches").delete().eq("match_date", date).eq("source", "api-football");
+    }
+
     return {
       success: true,
       sourceStatus: providerResult.sourceStatus,
@@ -126,8 +135,8 @@ export async function syncMatches({ env = process.env, fetchImpl = fetch } = {})
       matches,
       message:
         providerResult.sourceStatus === SOURCE_STATUS.API
-          ? "赛事数据已同步并写入缓存。"
-          : "已使用演示数据完成同步。",
+          ? "中国体育彩票赛事已同步并写入缓存。"
+          : "已使用中文赛事缓存完成同步。",
     };
   } catch (error) {
     return createErrorPayload("数据同步失败");

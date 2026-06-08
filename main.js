@@ -240,7 +240,7 @@ function createMatchCard(match) {
   );
 
   if (match.round) {
-    detailLine.append(createDetailItem("轮次", match.round));
+    detailLine.append(createDetailItem(isMatchNo(match.round) ? "编号" : "轮次", match.round));
   }
 
   const teamsLine = document.createElement("div");
@@ -477,4 +477,8 @@ function formatSourceStatus(sourceStatus) {
 
 function getStatusLabel(status) {
   return STATUS_LABELS[status] || STATUS_LABELS.unknown;
+}
+
+function isMatchNo(value) {
+  return /^周[一二三四五六日]\d{3}$/.test(String(value || ""));
 }

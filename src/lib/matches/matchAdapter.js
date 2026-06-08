@@ -117,7 +117,7 @@ export function adaptLegacyMatch(legacyMatch = {}, meta = {}) {
     status: normalizeMatchStatus(legacyMatch.status),
     homeScore: legacyMatch.homeScore ?? null,
     awayScore: legacyMatch.awayScore ?? null,
-    round: legacyMatch.round ?? null,
+    round: legacyMatch.round ?? legacyMatch.matchNo ?? null,
     source: meta.source || legacyMatch.sourceUrl || "legacy-data",
     sourceStatus: meta.sourceStatus || SOURCE_STATUS.MOCK,
     updatedAt,
