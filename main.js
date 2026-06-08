@@ -165,7 +165,9 @@ function normalizeMatches(matches = []) {
 function renderMeta(payload, matches) {
   matchCountLabel.textContent = `${matches.length} 场热门赛事`;
   dataUpdatedLabel.textContent = `数据更新时间 ${formatUpdatedAt(payload.updatedAt)}`;
-  dataSourceLabel.textContent = `数据状态 ${formatSourceStatus(payload.sourceStatus)}`;
+  dataSourceLabel.textContent = payload.sourceLabel
+    ? `数据源 ${payload.sourceLabel}`
+    : `数据状态 ${formatSourceStatus(payload.sourceStatus)}`;
 }
 
 function renderNotice(message) {
@@ -243,6 +245,10 @@ function createMatchCard(match) {
     detailLine.append(createDetailItem(isMatchNo(match.round) ? "编号" : "轮次", match.round));
   }
 
+  if (match.rq !== null && match.rq !== undefined) {
+    detailLine.append(createDetailItem("让球", formatRq(match.rq)));
+  }
+
   const teamsLine = document.createElement("div");
   teamsLine.className = "teams__line";
   teamsLine.append(
@@ -251,7 +257,13 @@ function createMatchCard(match) {
     createTeamName(match.awayTeam),
   );
 
+  const odds = createOddsPanel(match);
+
   teams.append(detailLine, teamsLine);
+
+  if (odds) {
+    teams.append(odds);
+  }
 
   const status = document.createElement("span");
   status.className = `status ${getStatusClass(matchState.status)}`;
@@ -292,6 +304,71 @@ function createScoreBadge(match, matchState) {
 
   span.textContent = "VS";
   return span;
+}
+
+function createOddsPanel(match) {
+  const groups = [
+    ["胜平负", match.spf],
+    ["让球胜平负", match.rqspf],
+  ].filter(([, odds]) => hasOdds(odds));
+
+  if (!groups.length) {
+    return null;
+  }
+
+  const panel = document.createElement("div");
+  panel.className = "odds-panel";
+
+  for (const [label, odds] of groups) {
+    const row = document.createElement("div");
+    row.className = "odds-row";
+    row.append(
+      createOddsLabel(label),
+      createOddsItem("胜", odds.win),
+      createOddsItem("平", odds.draw),
+      createOddsItem("负", odds.lose),
+    );
+    panel.append(row);
+  }
+
+  return panel;
+}
+
+function createOddsLabel(label) {
+  const span = document.createElement("span");
+  span.className = "odds-label";
+  span.textContent = label;
+  return span;
+}
+
+function createOddsItem(label, value) {
+  const span = document.createElement("span");
+  span.className = "odds-item";
+  span.textContent = `${label} ${formatSp(value)}`;
+  return span;
+}
+
+function hasOdds(odds) {
+  return Boolean(
+    odds &&
+      (odds.win !== null || odds.draw !== null || odds.lose !== null) &&
+      (odds.win !== undefined || odds.draw !== undefined || odds.lose !== undefined),
+  );
+}
+
+function formatSp(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(2) : "-";
+}
+
+function formatRq(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return String(value || "-");
+  }
+
+  return number > 0 ? `+${number}` : String(number);
 }
 
 function formatKickoff(kickoffTime) {

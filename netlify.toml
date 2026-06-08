@@ -19,3 +19,8 @@
   from = "/api/matches-today"
   to = "/.netlify/functions/matches-today"
   status = 200
+
+[[redirects]]
+  from = "/api/lottery-matches-today"
+  to = "/.netlify/functions/lottery-matches-today"
+  status = 200

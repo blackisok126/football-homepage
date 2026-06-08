@@ -8,8 +8,10 @@ const filesToCheck = [
   "scripts/build-check.mjs",
   "src/lib/matches/types.js",
   "src/lib/matches/matchAdapter.js",
+  "src/lib/matches/matchLotteryWithApiFootball.js",
   "src/lib/matches/mockMatches.js",
   "src/lib/matches/getTodayMatches.js",
+  "src/lib/matches/providers/chinaLotteryProvider.js",
   "src/lib/matches/providers/localChineseProvider.js",
   "src/lib/matches/providers/mockProvider.js",
   "src/lib/matches/providers/sportteryProvider.js",
@@ -17,6 +19,8 @@ const filesToCheck = [
   "src/lib/matches/server.js",
   "src/lib/supabase.js",
   "netlify/functions/matches-today.js",
+  "netlify/functions/lottery-matches-today.js",
+  "netlify/functions/sync-lottery-matches.js",
   "netlify/functions/sync-matches.js"
 ];
 

@@ -1,0 +1,13 @@
+{
+  "teams": {
+    "Japan": "日本",
+    "Australia": "澳大利亚",
+    "Colombia": "哥伦比亚",
+    "Jordan": "约旦"
+  },
+  "leagues": {
+    "World Cup Qualification AFC": "世亚预",
+    "Friendlies": "国际友谊赛",
+    "Friendlies Women": "国际友谊赛女足"
+  }
+}
