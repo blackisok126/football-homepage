@@ -18,10 +18,11 @@ python3 -m http.server 4173
 node scripts/fetch-matches.mjs
 ```
 
-默认会依次尝试这两个公开来源：
+默认会依次尝试这些公开来源：
 
+- `https://www.lottery.gov.cn/jc/zqszsc/`
+- `https://www.sporttery.cn/jc/zqszsc/index.html`
 - `https://jc.titan007.com/index.aspx`
-- `https://jc.zhcw.com/index.php?act=zqjsq_hhgg`
 
 抓取地址也可以通过环境变量配置，多个地址用英文逗号分隔：
 
@@ -30,6 +31,8 @@ MATCH_SOURCE_URL="https://example.com/a,https://example.com/b" node scripts/fetc
 ```
 
 如果抓取失败，脚本会保留已有的 `data/matches.json`，避免首页变成空数据。
+
+如果全部网络来源都失败，也可以把网页截图保存为 `data/matches-screenshot.png`。脚本会在最后尝试用 OCR 识别截图文字并更新赛事；OCR 也失败时才继续保留旧数据。
 
 ## 上传二维码
 

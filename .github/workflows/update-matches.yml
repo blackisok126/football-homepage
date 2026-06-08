@@ -21,10 +21,14 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install OCR tools
+        if: ${{ hashFiles('data/matches-screenshot.png') != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-chi-sim
+
       - name: Fetch matches
         run: node scripts/fetch-matches.mjs
-        env:
-          MATCH_SOURCE_URL: ${{ vars.MATCH_SOURCE_URL }}
 
       - name: Commit updated data
         uses: stefanzweifel/git-auto-commit-action@v5

@@ -38,7 +38,7 @@
 {
   "date": "2026-06-07",
   "timezone": "Asia/Shanghai",
-  "source": "https://jc.zhcw.com/index.php?act=zqjsq_hhgg",
+  "source": "https://www.lottery.gov.cn/jc/zqszsc/",
   "updatedAt": "2026-06-07T08:36:00.000Z",
   "matches": []
 }
@@ -65,7 +65,7 @@
     "draw": "3.08",
     "lose": "3.15"
   },
-  "sourceUrl": "https://jc.zhcw.com/index.php?act=zqjsq_hhgg"
+  "sourceUrl": "https://www.sporttery.cn/jc/zqdz/index.html?showType=2&mid=123456"
 }
 ```
 
@@ -83,10 +83,13 @@
 
 默认抓取顺序在 `scripts/fetch-matches.mjs` 的 `DEFAULT_SOURCE_URLS` 中维护：
 
-1. `https://jc.zhcw.com/index.php?act=zqjsq_hhgg`
-2. `https://jc.titan007.com/index.aspx`
+1. `https://www.lottery.gov.cn/jc/zqszsc/`
+2. `https://www.sporttery.cn/jc/zqszsc/index.html`
+3. `https://jc.titan007.com/index.aspx`
 
-中彩网来源提供结构化 JSON 和赔率字段，应作为优先来源。titan007 来源作为备份，当前可提供赛事编号、开赛时间、球队和让球值，但普通胜平负赔率可能缺失。
+`lottery.gov.cn` / `sporttery.cn` 是官方竞彩足球赛程页面，脚本会通过官方前端使用的 `webapi.sporttery.cn` 赛程接口解析数据。该接口在部分自动化环境可能返回防护页；脚本应继续尝试后续来源，并在全部失败时保留已有 `data/matches.json`。titan007 来源作为备份，当前可提供赛事编号、开赛时间、球队和让球值，但普通胜平负赔率可能缺失。
+
+如果全部网络来源都失败，脚本支持可选 OCR 兜底：把网页截图保存为 `data/matches-screenshot.png`，脚本会调用 `tesseract` 识别截图文字并尝试解析赛事。OCR 只作为最后兜底，解析不到赛事时必须保留已有 `data/matches.json`。
 
 运行抓取：
 
@@ -145,6 +148,12 @@ python3 -m http.server 4173
 
 ```bash
 node scripts/fetch-matches.mjs
+```
+
+OCR 兜底检查：
+
+```bash
+MATCH_OCR_IMAGE="data/matches-screenshot.png" node scripts/fetch-matches.mjs
 ```
 
 浏览器验证重点：
