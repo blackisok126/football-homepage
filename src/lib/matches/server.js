@@ -41,6 +41,7 @@ export async function buildMatchesTodayPayload({ env = process.env } = {}) {
       .select("*")
       .eq("match_date", today)
       .neq("source", "api-football")
+      .neq("source", "mock-provider")
       .order("kickoff_time", { ascending: true });
 
     if (error) {
@@ -126,6 +127,7 @@ export async function syncMatches({ env = process.env, fetchImpl = fetch } = {})
 
     if (providerResult.source !== "api-football") {
       await supabase.from("matches").delete().eq("match_date", date).eq("source", "api-football");
+      await supabase.from("matches").delete().eq("match_date", date).eq("source", "mock-provider");
     }
 
     return {

@@ -85,6 +85,7 @@ export function normalizeMatchStatus(status) {
       "tbd",
       "time to be defined",
       "not started",
+      "not_started",
       "未开始",
       "scheduled",
     ].includes(value) ||
