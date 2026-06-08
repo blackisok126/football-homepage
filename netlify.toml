@@ -21,6 +21,6 @@
   status = 200
 
 [[redirects]]
-  from = "/api/lottery-matches-today"
-  to = "/.netlify/functions/lottery-matches-today"
+  from = "/api/world-cup-matches"
+  to = "/.netlify/functions/world-cup-matches"
   status = 200

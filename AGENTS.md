@@ -2,108 +2,113 @@
 
 ## 项目概览
 
-这是一个轻量无构建静态足球赛事个人主页，用于展示今日热门足球赛事、赛事编号、开赛时间、倒计时、比赛状态、让球与胜平负赔率，并提供二维码区域引导访客扫码交流。
+这是一个轻量无构建静态足球赛事个人主页，用于展示世界杯赛事、开赛时间、倒计时、比赛状态、比分，并提供二维码区域引导访客扫码交流。
 
-项目不依赖前端框架、打包器或包管理依赖。核心文件如下：
+项目不依赖前端框架或打包器，核心文件如下：
 
 - `index.html`：页面结构、主要文案、二维码弹窗结构。
 - `styles.css`：全部视觉样式、信息层级和响应式布局。
-- `main.js`：读取 `data/matches.json`，渲染赛事卡片、状态、倒计时、二维码加载与保存交互。
-- `data/matches.json`：前端读取的赛事数据文件。
-- `scripts/fetch-matches.mjs`：Node.js 赛事抓取脚本。
+- `main.js`：通过统一数据入口读取赛事 payload，渲染赛事卡片、状态、倒计时、二维码加载与保存交互。
+- `src/lib/matches/getTodayMatches.js`：前端统一数据入口，优先读取世界杯缓存。
+- `src/lib/matches/providers/worldCupProvider.js`：API-Football 世界杯 provider、中文映射和 Supabase row adapter。
+- `netlify/functions/world-cup-matches.js`：从 Supabase 读取世界杯赛事缓存。
+- `netlify/functions/sync-world-cup-matches.js`：定时从 API-Football 同步世界杯赛事并写入 Supabase。
+- `data/football-cn-aliases.json`：联赛、球队、状态中文映射。
+- `supabase/schema.sql`：Supabase 表结构。
 - `scripts/prepare-qr-assets.mjs`：根据二维码原图生成轻量展示图。
-- `.github/workflows/update-matches.yml`：GitHub Actions 每小时更新赛事数据。
-- `.github/workflows/prepare-qr-assets.yml`：上传或替换二维码原图后自动生成展示图。
 - `assets/qr.PNG`：二维码原图，用于保存到相册或下载。
 - `assets/qr-display.png`：页面优先加载的轻量二维码展示图。
 - `assets/qr-pitch-texture.png`、`assets/hero-neon-banner.png`、`assets/stadium-night-bg.png`：页面视觉素材。
 
 ## 开发原则
 
-- 保持项目为无构建静态站，除非用户明确要求，不要引入 Vite、React、Vue、打包器或包管理依赖。
-- 页面应能通过 `python3 -m http.server 4173` 直接预览。
-- 不要把抓取逻辑放到前端运行；前端只读取 `data/matches.json`。
+- 保持项目为无构建静态站，除非用户明确要求，不要引入 Vite、React、Vue 或打包器。
+- 页面应能通过 `python3 -m http.server 4173` 直接预览；本地没有 Netlify Functions 时，前端必须回退到备用数据或 mock 数据。
+- 不要在前端请求 API-Football，不要在前端爬取中国体彩、Sporttery 或其他网站。
+- 赛事数据应通过 `src/lib/matches/getTodayMatches.js` 统一读取。
+- API key、Supabase service role key 只能在 Netlify Function 服务端使用，不要写进前端或提交到代码。
 - 不要删除二维码缺失占位逻辑。二维码图片不可用时，页面应显示“二维码待上传”。
 - 二维码展示应优先加载 `assets/qr-display.png`，保存/分享时仍使用 `assets/qr.PNG`。
 - `assets/qr-display.png` 不可用时，前端应回退加载 `assets/qr.PNG`，避免页面直接空白。
-- 不要在页面上显示完整数据源 URL，除非用户明确要求。单场赛事的“查看来源”链接可以保留。
 - 修改 UI 后要检查移动端宽度，避免文字、卡片、赔率标签、二维码弹窗横向溢出。
 - 当前设计是体育媒体风：深色背景、高对比信息卡片、绿色/金色强调，卡片和按钮圆角保持克制。
 
 ## 赛事数据约定
 
-`data/matches.json` 的顶层结构：
+前端优先读取：
+
+```text
+/.netlify/functions/world-cup-matches
+```
+
+如果世界杯缓存不可用，再回退：
+
+```text
+/api/matches-today
+```
+
+仍失败时展示 mock 数据，页面不能白屏。
+
+世界杯前端赛事字段示例：
 
 ```json
 {
-  "date": "2026-06-07",
-  "timezone": "Asia/Shanghai",
-  "source": "https://www.lottery.gov.cn/jc/zqszsc/",
-  "updatedAt": "2026-06-07T08:36:00.000Z",
-  "matches": []
+  "id": "api_football:worldcup:2026:123456",
+  "matchDate": "2026-06-11",
+  "kickoffTime": "2026-06-11T19:00:00+08:00",
+  "league": "世界杯",
+  "homeTeam": "阿根廷",
+  "awayTeam": "法国",
+  "status": "not_started",
+  "statusCn": "未开始",
+  "homeScore": null,
+  "awayScore": null,
+  "round": "Group A - 1",
+  "source": "api_football",
+  "sourceStatus": "cache",
+  "updatedAt": "2026-06-08T00:00:00.000Z"
 }
 ```
 
-单场赛事字段：
+状态归一为：
 
-```json
-{
-  "matchNo": "周日201",
-  "competition": "国际赛",
-  "kickoffTime": "2026-06-07T18:45:00.000Z",
-  "homeTeam": "克罗地亚",
-  "awayTeam": "斯洛文尼",
-  "status": "未开始",
-  "handicap": "-1",
-  "odds": {
-    "win": "1.26",
-    "draw": "4.45",
-    "lose": "9.00"
-  },
-  "handicapOdds": {
-    "win": "2.05",
-    "draw": "3.08",
-    "lose": "3.15"
-  },
-  "sourceUrl": "https://www.sporttery.cn/jc/zqdz/index.html?showType=2&mid=123456"
-}
+- `not_started`：未开始
+- `live`：进行中
+- `finished`：已结束
+- `postponed`：已延期
+- `unknown`：待确认
+
+中文队名、联赛名、状态优先使用 `data/football-cn-aliases.json`。缺少中文映射时显示 API-Football 原名，不影响页面渲染。
+
+## 数据同步
+
+世界杯同步函数：
+
+```text
+/.netlify/functions/sync-world-cup-matches
 ```
 
-时间存储为 ISO 字符串，前端按 `Asia/Shanghai` 显示。赛事卡片展示普通胜平负赔率；如果普通胜平负赔率缺失，可回退展示让球胜平负赔率。
+该函数使用 API-Football `fixtures` 接口，默认读取：
 
-前端会根据 `kickoffTime` 和抓取到的 `status` 归一显示三类状态：
+- league id：`1`
+- season：`2026`
+- timezone：`Asia/Shanghai`
 
-- `未开始`
-- `进行中`
-- `已结束`
+同步结果写入 Supabase `world_cup_matches`，按 `match_key` upsert。API-Football 同步失败时不要清空旧缓存。
 
-倒计时由前端根据当前时间计算，并每分钟刷新。默认比赛持续时间按 2 小时估算，用于从“进行中”切换到“已结束”。
-
-## 抓取脚本
-
-默认抓取顺序在 `scripts/fetch-matches.mjs` 的 `DEFAULT_SOURCE_URLS` 中维护：
-
-1. `https://www.lottery.gov.cn/jc/zqszsc/`
-2. `https://www.sporttery.cn/jc/zqszsc/index.html`
-3. `https://jc.titan007.com/index.aspx`
-
-`lottery.gov.cn` / `sporttery.cn` 是官方竞彩足球赛程页面，脚本会通过官方前端使用的 `webapi.sporttery.cn` 赛程接口解析数据。该接口在部分自动化环境可能返回防护页；脚本应继续尝试后续来源，并在全部失败时保留已有 `data/matches.json`。titan007 来源作为备份，当前可提供赛事编号、开赛时间、球队和让球值，但普通胜平负赔率可能缺失。
-
-如果全部网络来源都失败，脚本支持可选 OCR 兜底：把网页截图保存为 `data/matches-screenshot.png`，脚本会调用 `tesseract` 识别截图文字并尝试解析赛事。OCR 只作为最后兜底，解析不到赛事时必须保留已有 `data/matches.json`。
-
-运行抓取：
+需要的环境变量：
 
 ```bash
-node scripts/fetch-matches.mjs
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+API_FOOTBALL_KEY=
+FOOTBALL_API_BASE_URL=https://v3.football.api-sports.io
+API_FOOTBALL_WORLD_CUP_LEAGUE_ID=1
+API_FOOTBALL_WORLD_CUP_SEASON=2026
+API_FOOTBALL_TIMEZONE=Asia/Shanghai
 ```
 
-覆盖来源：
-
-```bash
-MATCH_SOURCE_URL="https://example.com/a,https://example.com/b" node scripts/fetch-matches.mjs
-```
-
-抓取失败时，脚本应保留已有 `data/matches.json`，避免前端变为空数据。
+`FOOTBALL_API_KEY` 作为旧变量名仍兼容，但推荐使用 `API_FOOTBALL_KEY`。
 
 ## 二维码更新流程
 
@@ -137,35 +142,21 @@ node scripts/prepare-qr-assets.mjs
 常用检查：
 
 ```bash
-node --check main.js
-node --check scripts/fetch-matches.mjs
-node --check scripts/prepare-qr-assets.mjs
+npm run build
+node scripts/build-check.mjs
 node scripts/prepare-qr-assets.mjs
 python3 -m http.server 4173
-```
-
-抓取检查：
-
-```bash
-node scripts/fetch-matches.mjs
-```
-
-OCR 兜底检查：
-
-```bash
-MATCH_OCR_IMAGE="data/matches-screenshot.png" node scripts/fetch-matches.mjs
 ```
 
 浏览器验证重点：
 
 - 首页能显示赛事数量和赛事卡片。
-- 赛事卡片包含编号、完整开赛日期时间、倒计时、状态、让球和胜平负赔率。
-- 左侧时间提示使用“开赛时间”。
-- 比赛状态只显示为“未开始 / 进行中 / 已结束”。
+- 赛事卡片包含完整开赛日期时间、倒计时、状态、球队和比分/VS。
+- 数据源优先显示世界杯缓存相关提示。
+- 比赛状态只显示为“未开始 / 进行中 / 已结束 / 已延期 / 待确认”。
 - 二维码图片不存在时显示占位，不出现破图白块。
 - 二维码弹窗标题“二维码”居中。
 - 二维码按钮文案为“保存到相册”。
-- 页面不显示“数据来源：...”提示块。
 - 手机宽度没有横向滚动或文字重叠。
 
 ## 文案与样式约定
@@ -174,7 +165,6 @@ MATCH_OCR_IMAGE="data/matches-screenshot.png" node scripts/fetch-matches.mjs
 - 二维码区域标题使用“二维码”，不要改回“个人二维码”。
 - 二维码说明文案保持简洁，当前为“扫码交流赛程、看法和观赛提醒。”
 - 赛事列表标题使用“今日热门赛事”。
-- 不要恢复赛事列表标题右侧的“更新于 ...”显示。
-- 赛事卡片应保持信息优先：开赛时间、状态、编号、开赛日期、倒计时、球队、赔率、查看来源。
+- 赛事卡片应保持信息优先：开赛时间、状态、开赛日期、倒计时、球队、比分。
 - 视觉风格保持体育媒体风：深色背景、高对比信息卡片、绿色/金色强调。
 - 卡片和按钮圆角保持克制，避免大面积营销式装饰。

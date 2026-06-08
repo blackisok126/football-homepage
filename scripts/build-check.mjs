@@ -3,24 +3,21 @@ import { spawnSync } from "node:child_process";
 
 const filesToCheck = [
   "main.js",
-  "scripts/fetch-matches.mjs",
   "scripts/prepare-qr-assets.mjs",
   "scripts/build-check.mjs",
   "src/lib/matches/types.js",
   "src/lib/matches/matchAdapter.js",
-  "src/lib/matches/matchLotteryWithApiFootball.js",
+  "src/lib/matches/worldCupConfig.js",
   "src/lib/matches/mockMatches.js",
   "src/lib/matches/getTodayMatches.js",
-  "src/lib/matches/providers/chinaLotteryProvider.js",
-  "src/lib/matches/providers/localChineseProvider.js",
   "src/lib/matches/providers/mockProvider.js",
-  "src/lib/matches/providers/sportteryProvider.js",
   "src/lib/matches/providers/apiFootballProvider.js",
+  "src/lib/matches/providers/worldCupProvider.js",
   "src/lib/matches/server.js",
   "src/lib/supabase.js",
   "netlify/functions/matches-today.js",
-  "netlify/functions/lottery-matches-today.js",
-  "netlify/functions/sync-lottery-matches.js",
+  "netlify/functions/world-cup-matches.js",
+  "netlify/functions/sync-world-cup-matches.js",
   "netlify/functions/sync-matches.js"
 ];
 

@@ -1,13 +1,17 @@
 import { createMockMatchesResponse } from "./mockMatches.js";
 
 const TODAY_MATCHES_API = "/api/matches-today";
-const LOTTERY_MATCHES_API = "/.netlify/functions/lottery-matches-today";
+const WORLD_CUP_MATCHES_API = "/.netlify/functions/world-cup-matches";
 
 export async function getTodayMatchesPayload(fetchImpl = fetch) {
-  const lotteryPayload = await fetchMatchesPayload(fetchImpl, LOTTERY_MATCHES_API);
+  const worldCupPayload = await fetchMatchesPayload(fetchImpl, WORLD_CUP_MATCHES_API);
 
-  if (lotteryPayload?.success && Array.isArray(lotteryPayload.matches) && lotteryPayload.matches.length) {
-    return lotteryPayload;
+  if (
+    worldCupPayload?.success &&
+    Array.isArray(worldCupPayload.matches) &&
+    worldCupPayload.matches.length
+  ) {
+    return worldCupPayload;
   }
 
   const fallbackPayload = await fetchMatchesPayload(fetchImpl, TODAY_MATCHES_API);
@@ -16,9 +20,9 @@ export async function getTodayMatchesPayload(fetchImpl = fetch) {
     return {
       ...fallbackPayload,
       message:
-        lotteryPayload?.message ||
+        worldCupPayload?.message ||
         fallbackPayload.message ||
-        "中国体育彩票赛事暂时不可用，当前展示备用赛事数据。",
+        "世界杯赛事缓存暂时不可用，当前展示备用赛事数据。",
     };
   }
 
