@@ -1,5 +1,19 @@
-const DATA_URL = "data/matches.json";
+import { getTodayMatchesPayload } from "./src/lib/matches/getTodayMatches.js";
+
 const MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
+const SOURCE_STATUS_LABELS = {
+  api: "API 实时",
+  cache: "缓存可用",
+  mock: "演示数据",
+  error: "数据异常",
+};
+const STATUS_LABELS = {
+  not_started: "未开始",
+  live: "进行中",
+  finished: "已结束",
+  postponed: "已延期",
+  unknown: "待确认",
+};
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Asia/Shanghai",
@@ -18,8 +32,18 @@ const matchDateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
   weekday: "short",
 });
 
+const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 const todayLabel = document.querySelector("#todayLabel");
 const matchCountLabel = document.querySelector("#matchCountLabel");
+const dataUpdatedLabel = document.querySelector("#dataUpdatedLabel");
+const dataSourceLabel = document.querySelector("#dataSourceLabel");
 const notice = document.querySelector("#notice");
 const matchGroups = document.querySelector("#matchGroups");
 const qrFrame = document.querySelector("#qrFrame");
@@ -106,28 +130,13 @@ function updateTodayLabel() {
 }
 
 async function loadMatches() {
-  try {
-    const response = await fetch(DATA_URL, { cache: "no-store" });
+  const payload = await getTodayMatchesPayload();
+  const matches = normalizeMatches(payload.matches);
 
-    if (!response.ok) {
-      throw new Error(`赛程数据读取失败：${response.status}`);
-    }
-
-    const payload = await response.json();
-    const matches = normalizeMatches(payload.matches);
-
-    currentMatches = matches;
-    renderMeta(payload, matches);
-    renderMatches(matches);
-  } catch (error) {
-    const fallback = getFallbackPayload();
-    const matches = normalizeMatches(fallback.matches);
-
-    currentMatches = matches;
-    renderMeta(fallback, matches);
-    showNotice("暂时无法读取赛程文件，正在展示示例赛程。");
-    renderMatches(matches);
-  }
+  currentMatches = matches;
+  renderMeta(payload, matches);
+  renderNotice(payload.message);
+  renderMatches(matches);
 }
 
 function normalizeMatches(matches = []) {
@@ -155,27 +164,39 @@ function normalizeMatches(matches = []) {
 
 function renderMeta(payload, matches) {
   matchCountLabel.textContent = `${matches.length} 场热门赛事`;
+  dataUpdatedLabel.textContent = `数据更新时间 ${formatUpdatedAt(payload.updatedAt)}`;
+  dataSourceLabel.textContent = `数据状态 ${formatSourceStatus(payload.sourceStatus)}`;
+}
+
+function renderNotice(message) {
+  if (!message) {
+    notice.hidden = true;
+    notice.textContent = "";
+    return;
+  }
+
+  showNotice(message);
 }
 
 function renderMatches(matches) {
   if (!matches.length) {
-    renderEmpty("今日暂无热门赛事");
+    renderEmpty("赛事数据暂时不可用，请稍后查看。");
     return;
   }
 
-  const groups = groupByCompetition(matches);
+  const groups = groupByLeague(matches);
   matchGroups.innerHTML = "";
 
-  for (const [competition, competitionMatches] of groups) {
+  for (const [league, leagueMatches] of groups) {
     const group = document.createElement("section");
     group.className = "competition-group";
 
     const title = document.createElement("h3");
     title.className = "competition-title";
-    title.textContent = competition;
+    title.textContent = league;
     group.append(title);
 
-    for (const match of competitionMatches) {
+    for (const match of leagueMatches) {
       group.append(createMatchCard(match));
     }
 
@@ -183,15 +204,15 @@ function renderMatches(matches) {
   }
 }
 
-function groupByCompetition(matches) {
+function groupByLeague(matches) {
   return matches.reduce((groups, match) => {
-    const competition = match.competition || "其他赛事";
+    const league = match.league || "其他赛事";
 
-    if (!groups.has(competition)) {
-      groups.set(competition, []);
+    if (!groups.has(league)) {
+      groups.set(league, []);
     }
 
-    groups.get(competition).push(match);
+    groups.get(league).push(match);
     return groups;
   }, new Map());
 }
@@ -212,56 +233,32 @@ function createMatchCard(match) {
   const detailLine = document.createElement("div");
   detailLine.className = "match-details";
   detailLine.append(
-    createDetailItem("编号", match.matchNo || "待定"),
+    createDetailItem("联赛", match.league || "待定"),
     createDetailItem("开赛", formatMatchDateTime(match.kickoffTime)),
-    createDetailItem("距开赛", formatCountdown(match, matchState), "countdown"),
+    createDetailItem("状态", getStatusLabel(matchState.status)),
+    createDetailItem("进度", formatCountdown(matchState), "countdown"),
   );
+
+  if (match.round) {
+    detailLine.append(createDetailItem("轮次", match.round));
+  }
 
   const teamsLine = document.createElement("div");
   teamsLine.className = "teams__line";
   teamsLine.append(
     createTeamName(match.homeTeam),
-    createVersus(),
+    createScoreBadge(match, matchState),
     createTeamName(match.awayTeam),
   );
+
   teams.append(detailLine, teamsLine);
-
-  const marketLine = createMarketLine(match);
-
-  if (marketLine) {
-    teams.append(marketLine);
-  }
-
-  if (match.sourceUrl) {
-    const link = document.createElement("a");
-    link.className = "match-link";
-    link.href = match.sourceUrl;
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    link.textContent = "查看来源";
-    teams.append(link);
-  }
 
   const status = document.createElement("span");
   status.className = `status ${getStatusClass(matchState.status)}`;
-  status.textContent = matchState.status;
+  status.textContent = getStatusLabel(matchState.status);
 
   card.append(kickoff, teams, status);
   return card;
-}
-
-function createTeamName(teamName) {
-  const span = document.createElement("span");
-  span.className = "team-name";
-  span.textContent = teamName;
-  return span;
-}
-
-function createVersus() {
-  const span = document.createElement("span");
-  span.className = "versus";
-  span.textContent = "VS";
-  return span;
 }
 
 function createDetailItem(label, value, variant = "") {
@@ -271,46 +268,29 @@ function createDetailItem(label, value, variant = "") {
   return span;
 }
 
-function createMarketLine(match) {
-  const hasOdds = match.odds?.win || match.odds?.draw || match.odds?.lose;
-  const hasHandicap = match.handicap || match.handicapOdds?.win;
-
-  if (!hasOdds && !hasHandicap) {
-    return null;
-  }
-
-  const line = document.createElement("div");
-  line.className = "market-line";
-
-  if (match.handicap) {
-    line.append(createMarketItem("让球", match.handicap));
-  }
-
-  if (hasOdds) {
-    line.append(
-      createMarketItem("胜", match.odds.win || "-"),
-      createMarketItem("平", match.odds.draw || "-"),
-      createMarketItem("负", match.odds.lose || "-"),
-    );
-  }
-
-  if (!hasOdds && match.handicapOdds?.win) {
-    line.append(
-      createMarketItem("让胜", match.handicapOdds.win || "-"),
-      createMarketItem("让平", match.handicapOdds.draw || "-"),
-      createMarketItem("让负", match.handicapOdds.lose || "-"),
-    );
-  }
-
-  return line;
+function createTeamName(teamName) {
+  const span = document.createElement("span");
+  span.className = "team-name";
+  span.textContent = teamName;
+  return span;
 }
 
-function createMarketItem(label, value) {
+function createScoreBadge(match, matchState) {
   const span = document.createElement("span");
-  span.className = "market-item";
-  const labelNode = document.createElement("b");
-  labelNode.textContent = label;
-  span.append(labelNode, ` ${value}`);
+  span.className = "versus";
+
+  if (
+    matchState.status !== "not_started" &&
+    match.homeScore !== null &&
+    match.homeScore !== undefined &&
+    match.awayScore !== null &&
+    match.awayScore !== undefined
+  ) {
+    span.textContent = `${match.homeScore} - ${match.awayScore}`;
+    return span;
+  }
+
+  span.textContent = "VS";
   return span;
 }
 
@@ -339,65 +319,65 @@ function formatMatchDateTime(kickoffTime) {
 }
 
 function getStatusClass(status = "") {
-  if (status === "进行中") {
+  if (status === "live") {
     return "status--live";
   }
 
-  if (status === "已结束") {
+  if (status === "finished") {
     return "status--finished";
+  }
+
+  if (status === "postponed") {
+    return "status--postponed";
   }
 
   return "";
 }
 
 function getMatchState(match) {
-  const fetchedStatus = normalizeStatus(match.status);
+  const fetchedStatus = String(match.status || "unknown");
   const kickoffTime = Date.parse(match.kickoffTime || "");
 
-  if (fetchedStatus === "已结束" || fetchedStatus === "进行中") {
+  if (
+    fetchedStatus === "finished" ||
+    fetchedStatus === "live" ||
+    fetchedStatus === "postponed"
+  ) {
     return { status: fetchedStatus, kickoffTime };
   }
 
   if (Number.isNaN(kickoffTime)) {
-    return { status: fetchedStatus, kickoffTime };
+    return { status: "unknown", kickoffTime };
   }
 
   const now = Date.now();
 
   if (now < kickoffTime) {
-    return { status: "未开始", kickoffTime };
+    return { status: "not_started", kickoffTime };
   }
 
   if (now < kickoffTime + MATCH_DURATION_MS) {
-    return { status: "进行中", kickoffTime };
+    return { status: "live", kickoffTime };
   }
 
-  return { status: "已结束", kickoffTime };
+  return { status: "finished", kickoffTime };
 }
 
-function normalizeStatus(status = "") {
-  if (/完场|结束|已结束|取消|延期/.test(status)) {
-    return "已结束";
-  }
-
-  if (/直播|进行|上半场|下半场|中场|加时|点球/.test(status)) {
-    return "进行中";
-  }
-
-  return "未开始";
-}
-
-function formatCountdown(match, matchState = getMatchState(match)) {
-  if (matchState.status === "进行中") {
+function formatCountdown(matchState) {
+  if (matchState.status === "live") {
     return "比赛进行中";
   }
 
-  if (matchState.status === "已结束") {
+  if (matchState.status === "finished") {
     return "比赛已结束";
   }
 
-  if (Number.isNaN(matchState.kickoffTime)) {
-    return "待定";
+  if (matchState.status === "postponed") {
+    return "等待官方更新";
+  }
+
+  if (matchState.status === "unknown" || Number.isNaN(matchState.kickoffTime)) {
+    return "待确认";
   }
 
   const remainingMs = Math.max(0, matchState.kickoffTime - Date.now());
@@ -481,49 +461,20 @@ function showNotice(message) {
   notice.textContent = message;
 }
 
-function getFallbackPayload() {
-  return {
-    date: "2026-06-07",
-    timezone: "Asia/Shanghai",
-    source: "示例数据",
-    updatedAt: "2026-06-07T08:00:00.000Z",
-    matches: [
-      {
-        competition: "国际友谊赛",
-        matchNo: "示例 001",
-        kickoffTime: "2026-06-07T11:00:00.000Z",
-        homeTeam: "英格兰",
-        awayTeam: "葡萄牙",
-        status: "未开始",
-        handicap: "-1",
-        odds: { win: "1.80", draw: "3.20", lose: "4.10" },
-        handicapOdds: { win: "2.20", draw: "3.35", lose: "2.75" },
-        sourceUrl: "",
-      },
-      {
-        competition: "中超",
-        matchNo: "示例 002",
-        kickoffTime: "2026-06-07T11:35:00.000Z",
-        homeTeam: "上海海港",
-        awayTeam: "山东泰山",
-        status: "未开始",
-        handicap: "-0.5",
-        odds: { win: "2.05", draw: "3.05", lose: "3.30" },
-        handicapOdds: { win: "2.58", draw: "3.10", lose: "2.30" },
-        sourceUrl: "",
-      },
-      {
-        competition: "国际友谊赛",
-        matchNo: "示例 003",
-        kickoffTime: "2026-06-07T18:45:00.000Z",
-        homeTeam: "法国",
-        awayTeam: "德国",
-        status: "未开始",
-        handicap: "0",
-        odds: { win: "2.30", draw: "3.10", lose: "2.85" },
-        handicapOdds: { win: "2.30", draw: "3.10", lose: "2.85" },
-        sourceUrl: "",
-      },
-    ],
-  };
+function formatUpdatedAt(updatedAt) {
+  const date = new Date(updatedAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return "待同步";
+  }
+
+  return updatedAtFormatter.format(date);
+}
+
+function formatSourceStatus(sourceStatus) {
+  return SOURCE_STATUS_LABELS[sourceStatus] || "状态待确认";
+}
+
+function getStatusLabel(status) {
+  return STATUS_LABELS[status] || STATUS_LABELS.unknown;
 }

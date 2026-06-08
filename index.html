@@ -37,6 +37,10 @@
             </div>
           </div>
 
+          <div class="data-status" aria-label="赛事数据状态">
+            <span class="data-pill" id="dataUpdatedLabel">数据更新时间 载入中</span>
+            <span class="data-pill" id="dataSourceLabel">数据状态 载入中</span>
+          </div>
           <div class="notice" id="notice" hidden></div>
           <div class="match-groups" id="matchGroups" aria-live="polite"></div>
         </section>
@@ -91,6 +95,6 @@
       </div>
     </dialog>
 
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
   </body>
 </html>

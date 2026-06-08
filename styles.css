@@ -253,6 +253,24 @@ h2 {
   line-height: 1.6;
 }
 
+.data-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.data-pill {
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid rgba(184, 240, 90, 0.2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .match-groups {
   display: grid;
   gap: 18px;
@@ -352,35 +370,12 @@ h2 {
   display: flex;
   gap: 9px;
   align-items: center;
+  justify-content: space-between;
   min-width: 0;
   color: #f7fbf8;
   font-size: clamp(1.12rem, 2vw, 1.3rem);
   font-weight: 800;
   line-height: 1.28;
-}
-
-.market-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 9px;
-}
-
-.market-item {
-  padding: 5px 8px;
-  border: 1px solid color-mix(in srgb, var(--gold) 36%, transparent);
-  border-radius: 6px;
-  background:
-    linear-gradient(180deg, rgba(255, 217, 106, 0.16), rgba(255, 217, 106, 0.06)),
-    color-mix(in srgb, var(--surface) 78%, transparent);
-  color: color-mix(in srgb, var(--gold) 78%, var(--text));
-  font-size: 0.78rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.market-item b {
-  color: var(--gold);
 }
 
 .team-name {
@@ -389,23 +384,22 @@ h2 {
 }
 
 .versus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--gold) 36%, transparent);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 217, 106, 0.16), rgba(255, 217, 106, 0.06)),
+    color-mix(in srgb, var(--surface) 78%, transparent);
   color: var(--gold);
-  font-size: 0.9em;
+  font-size: 0.82em;
   font-weight: 900;
   line-height: 1;
-}
-
-.match-link {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.4;
-  text-decoration: none;
-}
-
-.match-link:hover {
-  color: var(--lime);
+  white-space: nowrap;
 }
 
 .status {
@@ -429,6 +423,11 @@ h2 {
 .status--finished {
   background: rgba(255, 255, 255, 0.07);
   color: #aab7b0;
+}
+
+.status--postponed {
+  background: rgba(255, 217, 106, 0.16);
+  color: #f7d779;
 }
 
 .empty-state {
@@ -724,7 +723,7 @@ h2 {
   .teams__line {
     align-items: center;
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 6px;
   }
 

@@ -2,6 +2,9 @@
   publish = "."
   command = ""
 
+[functions]
+  directory = "netlify/functions"
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -11,3 +14,8 @@
   for = "/data/*.json"
   [headers.values]
     Cache-Control = "public, max-age=300"
+
+[[redirects]]
+  from = "/api/matches-today"
+  to = "/.netlify/functions/matches-today"
+  status = 200
