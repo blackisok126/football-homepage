@@ -24,3 +24,18 @@
   from = "/api/world-cup-matches"
   to = "/.netlify/functions/world-cup-matches"
   status = 200
+
+[[redirects]]
+  from = "/api/friendly-matches"
+  to = "/.netlify/functions/friendly-matches"
+  status = 200
+
+[[redirects]]
+  from = "/api/homepage-matches"
+  to = "/.netlify/functions/homepage-matches"
+  status = 200
+
+[[redirects]]
+  from = "/api/search-football-leagues"
+  to = "/.netlify/functions/search-football-leagues"
+  status = 200

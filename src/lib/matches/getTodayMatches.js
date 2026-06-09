@@ -1,9 +1,16 @@
 import { createMockMatchesResponse } from "./mockMatches.js";
 
 const TODAY_MATCHES_API = "/api/matches-today";
+const HOMEPAGE_MATCHES_API = "/.netlify/functions/homepage-matches";
 const WORLD_CUP_MATCHES_API = "/.netlify/functions/world-cup-matches";
 
 export async function getTodayMatchesPayload(fetchImpl = fetch) {
+  const homepagePayload = await fetchMatchesPayload(fetchImpl, HOMEPAGE_MATCHES_API);
+
+  if (homepagePayload?.success && Array.isArray(homepagePayload.matches)) {
+    return homepagePayload;
+  }
+
   const worldCupPayload = await fetchMatchesPayload(fetchImpl, WORLD_CUP_MATCHES_API);
 
   if (

@@ -5,22 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta
       name="description"
-      content="足球赛事个人主页，查看今日热门足球赛事和个人联系方式。"
+      content="中文足球赛事看板，查看今日赛程、赛事状态和观赛交流入口。"
     >
-    <title>绿茵今日 | 足球赛事个人主页</title>
+    <title>绿茵今日 | 足球赛事看板</title>
+    <script>
+      (() => {
+        const mode = localStorage.getItem("football-theme-mode") || "system";
+        const clockTheme = () => {
+          const hour = new Date().getHours();
+          return hour >= 6 && hour < 18 ? "light" : "dark";
+        };
+        const systemTheme = () =>
+          window.matchMedia?.("(prefers-color-scheme: dark)")?.matches
+            ? "dark"
+            : window.matchMedia
+              ? "light"
+              : clockTheme();
+        document.documentElement.dataset.theme =
+          mode === "light" || mode === "dark" ? mode : systemTheme();
+      })();
+    </script>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="site-shell">
+    <div class="app-frame">
+      <header class="site-header" aria-label="站点导航">
+        <a class="brand" href="#top" aria-label="绿茵今日首页">
+          <span class="brand__icon" aria-hidden="true"></span>
+          <span>绿茵今日</span>
+        </a>
+
+        <div class="header-actions">
+          <nav class="site-nav" id="siteNav" aria-label="页面导航">
+            <a href="#schedule">今日赛事</a>
+            <a href="#featured">热门赛事</a>
+            <a href="#qr-section">交流入口</a>
+          </nav>
+
+          <div class="theme-switcher">
+            <button class="theme-button" id="themeButton" type="button" aria-expanded="false" aria-controls="themeMenu">
+              <span id="themeButtonLabel">跟随系统</span>
+            </button>
+            <div class="theme-menu" id="themeMenu" hidden>
+              <button type="button" data-theme-mode="light">日间模式</button>
+              <button type="button" data-theme-mode="dark">夜间模式</button>
+              <button type="button" data-theme-mode="system">跟随系统</button>
+              <button type="button" data-theme-mode="sun">跟随日出日落</button>
+            </div>
+          </div>
+
+          <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="siteNav">
+            菜单
+          </button>
+        </div>
+      </header>
+
+      <main class="site-shell" id="top">
       <section class="hero" aria-labelledby="page-title">
         <div class="hero__content">
-          <p class="eyebrow">Football Matchday</p>
-          <h1 id="page-title">绿茵今日</h1>
-          <p class="hero__lead">
-            欢迎来到我的赛事分享主页。这里会整理当天值得关注的足球比赛，
-            扫描下方二维码，一起交流赛程、看法和观赛提醒。
-          </p>
-          <a class="hero__cta" href="#qr-section">查看二维码</a>
+          <p class="eyebrow">2026 Canada · Mexico · USA</p>
+          <h1 id="page-title">赛事<span>看板</span></h1>
+          <p class="hero__lead" id="heroSubtitle">北京时间今日 · 正在同步赛事</p>
+
+          <div class="hero__status" aria-label="赛事数据状态">
+            <span id="dataSourceLabel">数据状态 载入中</span>
+            <span id="dataUpdatedLabel">最近更新 载入中</span>
+          </div>
+
+          <div class="hero__actions" aria-label="快捷操作">
+            <a class="button button--primary" href="#schedule">查看今日赛程</a>
+            <a class="button button--secondary" href="#qr-section">交流观赛看法</a>
+          </div>
+
           <div class="hero__meta" aria-label="今日信息">
             <span id="todayLabel">今日赛程</span>
             <span id="matchCountLabel">载入中</span>
@@ -28,27 +84,61 @@
         </div>
       </section>
 
-      <section class="content-grid" aria-label="主页内容">
-        <section class="panel match-panel" aria-labelledby="matches-title">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">Today</p>
-              <h2 id="matches-title">今日热门赛事</h2>
-            </div>
-          </div>
+      <section class="stats-grid" aria-label="赛事概览">
+        <article class="stat-card">
+          <span class="stat-card__label">今日赛事</span>
+          <strong id="todayMatchStat">--</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">热门赛事</span>
+          <strong id="hotMatchStat">--</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">最近更新</span>
+          <strong id="updatedStat">待同步</strong>
+        </article>
+      </section>
 
-          <div class="data-status" aria-label="赛事数据状态">
-            <span class="data-pill" id="dataUpdatedLabel">数据更新时间 载入中</span>
-            <span class="data-pill" id="dataSourceLabel">数据状态 载入中</span>
-          </div>
-          <div class="notice" id="notice" hidden></div>
-          <div class="match-groups" id="matchGroups" aria-live="polite"></div>
-        </section>
+      <div class="notice" id="notice" hidden></div>
+
+      <section class="dashboard-grid" aria-label="赛事内容">
+        <div class="main-column">
+          <section class="panel featured-panel" id="featured" aria-labelledby="featured-title">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Focus</p>
+                <h2 id="featured-title">今日热门赛事</h2>
+              </div>
+              <span class="section-note">重点关注</span>
+            </div>
+            <div class="featured-matches" id="featuredMatches" aria-live="polite"></div>
+          </section>
+
+          <section class="panel schedule-panel" id="schedule" aria-labelledby="schedule-title">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Schedule</p>
+                <h2 id="schedule-title">今日赛程</h2>
+              </div>
+              <span class="section-note" id="scheduleCountLabel">全部赛事</span>
+            </div>
+
+            <div class="filter-tabs" id="filterTabs" role="tablist" aria-label="赛事筛选">
+              <button class="filter-tab is-active" type="button" data-filter="all" role="tab" aria-selected="true">全部</button>
+              <button class="filter-tab" type="button" data-filter="hot" role="tab" aria-selected="false">热门</button>
+              <button class="filter-tab" type="button" data-filter="not_started" role="tab" aria-selected="false">未开赛</button>
+              <button class="filter-tab" type="button" data-filter="live" role="tab" aria-selected="false">进行中</button>
+              <button class="filter-tab" type="button" data-filter="finished" role="tab" aria-selected="false">已结束</button>
+            </div>
+
+            <div class="match-groups match-timeline" id="matchGroups" aria-live="polite"></div>
+          </section>
+        </div>
 
         <aside class="panel profile-panel" id="qr-section" aria-labelledby="profile-title">
           <div class="section-heading section-heading--stacked">
-            <p class="section-kicker">QR Code</p>
-            <h2 id="profile-title">二维码</h2>
+            <p class="section-kicker">Chat</p>
+            <h2 id="profile-title">一起聊球</h2>
           </div>
 
           <div class="qr-frame" id="qrFrame">
@@ -68,12 +158,23 @@
           </div>
 
           <div class="profile-copy">
-            <strong>一起聊球</strong>
-            <p>扫码交流赛程、看法和观赛提醒。</p>
+            <strong>扫码交流赛程</strong>
+            <p>交流赛程、看法和观赛提醒。</p>
           </div>
+          <div class="supporter-graphic" aria-hidden="true"></div>
         </aside>
       </section>
-    </main>
+
+      <footer class="site-footer">
+        <span>数据说明</span>
+        <span>仅供赛事信息与观赛交流参考</span>
+      </footer>
+      </main>
+    </div>
+
+    <button class="mobile-chat-button" id="mobileChatButton" type="button">
+      一起聊球
+    </button>
 
     <dialog class="qr-dialog" id="qrDialog" aria-labelledby="qrDialogTitle">
       <div class="qr-dialog__panel">
