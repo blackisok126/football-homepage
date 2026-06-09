@@ -95,6 +95,23 @@ export async function fetchFriendlyMatches({
     rawPayload = nextPayload;
   }
 
+  if (!fixtures.length) {
+    const seasonPayload = await requestFixtures({
+      fetchImpl,
+      headers,
+      baseUrl: normalizedBaseUrl,
+      params: {
+        league: config.leagueId,
+        season: String(config.season),
+        timezone: TIME_ZONE,
+      },
+    });
+    fixtures = Array.isArray(seasonPayload.response)
+      ? seasonPayload.response.slice(0, 100)
+      : [];
+    rawPayload = seasonPayload;
+  }
+
   const updatedAt = new Date().toISOString();
   const matches = fixtures.map((fixture) => normalizeFriendlyFixture(fixture, updatedAt));
 
