@@ -34,9 +34,12 @@ export default async function friendlyMatches(request) {
       throw error;
     }
 
-    const matches = (data || []).map(friendlyRowToClientMatch);
+    const rows = (data || []).length
+      ? data
+      : await readUpcomingFriendlyRows(supabase, limit);
+    const matches = rows.map(friendlyRowToClientMatch);
     const updatedAt =
-      (data || [])
+      rows
         .map((row) => row.updated_at)
         .filter(Boolean)
         .sort()
@@ -58,6 +61,21 @@ export default async function friendlyMatches(request) {
       matches: [],
     });
   }
+}
+
+async function readUpcomingFriendlyRows(supabase, limit) {
+  const { data, error } = await supabase
+    .from("friendly_matches")
+    .select("*")
+    .gte("kickoff_time", new Date().toISOString())
+    .order("kickoff_time", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
 }
 
 function clampNumber(value, min, max, fallback) {

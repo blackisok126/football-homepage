@@ -103,10 +103,27 @@ async function readFriendlyMatches(supabase) {
     throw error;
   }
 
+  const rows = (data || []).length ? data : await readUpcomingFriendlyRows(supabase);
+
   return {
-    matches: (data || []).map(friendlyRowToClientMatch),
-    updatedAt: latestUpdatedAt(data, "updated_at"),
+    matches: rows.map(friendlyRowToClientMatch),
+    updatedAt: latestUpdatedAt(rows, "updated_at"),
   };
+}
+
+async function readUpcomingFriendlyRows(supabase) {
+  const { data, error } = await supabase
+    .from("friendly_matches")
+    .select("*")
+    .gte("kickoff_time", new Date().toISOString())
+    .order("kickoff_time", { ascending: true })
+    .limit(12);
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
 }
 
 function isWithinFutureDays(match) {

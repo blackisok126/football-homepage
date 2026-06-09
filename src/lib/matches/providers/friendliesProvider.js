@@ -5,6 +5,7 @@ const DEFAULT_BASE_URL = "https://v3.football.api-sports.io";
 const DEFAULT_SEASON = 2026;
 const DEFAULT_LOOKBACK_DAYS = 3;
 const DEFAULT_LOOKAHEAD_DAYS = 21;
+const DEFAULT_NEXT_LIMIT = 20;
 const TIME_ZONE = "Asia/Shanghai";
 
 export function getFriendliesConfig(env = process.env) {
@@ -15,6 +16,7 @@ export function getFriendliesConfig(env = process.env) {
     season: readNumber(env.FRIENDLIES_SEASON, DEFAULT_SEASON),
     lookbackDays: readNumber(env.FRIENDLIES_LOOKBACK_DAYS, DEFAULT_LOOKBACK_DAYS),
     lookaheadDays: readNumber(env.FRIENDLIES_LOOKAHEAD_DAYS, DEFAULT_LOOKAHEAD_DAYS),
+    nextLimit: readNumber(env.FRIENDLIES_NEXT_LIMIT, DEFAULT_NEXT_LIMIT),
   };
 }
 
@@ -58,26 +60,41 @@ export async function fetchFriendlyMatches({
 
   const range = getFriendliesDateRange(env);
   const normalizedBaseUrl = String(baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "");
-  const requestUrl = new URL(`${normalizedBaseUrl}/fixtures`);
-  requestUrl.searchParams.set("league", config.leagueId);
-  requestUrl.searchParams.set("season", String(config.season));
-  requestUrl.searchParams.set("from", range.from);
-  requestUrl.searchParams.set("to", range.to);
-  requestUrl.searchParams.set("timezone", TIME_ZONE);
-
-  const response = await fetchImpl(requestUrl, {
-    headers: {
-      Accept: "application/json",
-      "x-apisports-key": key,
+  const headers = {
+    Accept: "application/json",
+    "x-apisports-key": key,
+  };
+  const payload = await requestFixtures({
+    fetchImpl,
+    headers,
+    baseUrl: normalizedBaseUrl,
+    params: {
+      league: config.leagueId,
+      season: String(config.season),
+      from: range.from,
+      to: range.to,
+      timezone: TIME_ZONE,
     },
   });
+  let fixtures = Array.isArray(payload.response) ? payload.response : [];
+  let rawPayload = payload;
 
-  if (!response.ok) {
-    throw new Error(`API-Football friendlies request failed: ${response.status}`);
+  if (!fixtures.length && config.nextLimit > 0) {
+    const nextPayload = await requestFixtures({
+      fetchImpl,
+      headers,
+      baseUrl: normalizedBaseUrl,
+      params: {
+        league: config.leagueId,
+        season: String(config.season),
+        next: String(config.nextLimit),
+        timezone: TIME_ZONE,
+      },
+    });
+    fixtures = Array.isArray(nextPayload.response) ? nextPayload.response : [];
+    rawPayload = nextPayload;
   }
 
-  const payload = await response.json();
-  const fixtures = Array.isArray(payload.response) ? payload.response : [];
   const updatedAt = new Date().toISOString();
   const matches = fixtures.map((fixture) => normalizeFriendlyFixture(fixture, updatedAt));
 
@@ -91,8 +108,25 @@ export async function fetchFriendlyMatches({
       match,
       raw: fixtures[index],
     })),
-    raw: payload,
+    raw: rawPayload,
   };
+}
+
+async function requestFixtures({ fetchImpl, headers, baseUrl, params }) {
+  const requestUrl = new URL(`${baseUrl}/fixtures`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      requestUrl.searchParams.set(key, value);
+    }
+  });
+
+  const response = await fetchImpl(requestUrl, { headers });
+
+  if (!response.ok) {
+    throw new Error(`API-Football friendlies request failed: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 export function friendlyMatchToSupabaseRow(match, raw = match.raw) {
