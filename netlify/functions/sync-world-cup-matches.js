@@ -1,10 +1,4 @@
-import { jsonResponse } from "../../src/lib/matches/server.js";
+import { schedule } from "@netlify/functions";
+import { syncJuheWorldCupMatches } from "../../src/lib/matches/juheSyncService.js";
 
-export default async function syncWorldCupMatchesDisabled() {
-  return jsonResponse({
-    success: false,
-    source: "disabled",
-    disabled: true,
-    message: "API-Football 世界杯同步已停用，请使用 sync-juhe-world-cup-matches。",
-  });
-}
+export default schedule("*/40 * * * *", syncJuheWorldCupMatches);

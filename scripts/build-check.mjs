@@ -9,6 +9,7 @@ const filesToCheck = [
   "src/lib/matches/matchAdapter.js",
   "src/lib/matches/mockMatches.js",
   "src/lib/matches/getTodayMatches.js",
+  "src/lib/matches/juheSyncService.js",
   "src/lib/matches/providers/mockProvider.js",
   "src/lib/matches/providers/juheProvider.js",
   "src/lib/matches/server.js",
