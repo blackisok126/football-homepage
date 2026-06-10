@@ -288,11 +288,11 @@ function renderMeta(payload, matches) {
       ? "Supabase 缓存"
       : payload.sourceLabel || formatSourceStatus(payload.sourceStatus);
   const statusPrefix = payload.sourceStatus === "mock" ? "当前展示演示数据" : "数据已同步";
-  const displayTitle = payload.displayTitle || "今日热门赛事";
+  const displayTitle = payload.displayTitle || "2026 美加墨世界杯赛程";
 
   heroSubtitle.textContent = `北京时间 ${dateFormatter.format(new Date())} · 已同步 ${matches.length} 场赛事`;
   featuredTitle.textContent = displayTitle;
-  scheduleTitle.textContent = payload.displaySource === "friendly" ? "友谊赛程" : "今日赛程";
+  scheduleTitle.textContent = "世界杯赛事日历";
   matchCountLabel.textContent = `${matches.length} 场赛事`;
   todayMatchStat.textContent = `${matches.length} 场`;
   hotMatchStat.textContent = `${hotCount} 场`;
@@ -552,7 +552,7 @@ function renderTimeline(matches) {
   scheduleCountLabel.textContent = `${matches.length} 场${getFilterLabel(activeFilter)}赛事`;
 
   if (!currentMatches.length) {
-    matchGroups.append(createEmptyState("今日暂无赛事数据", "请稍后刷新或查看缓存数据"));
+    matchGroups.append(createEmptyState("暂无世界杯赛事数据", "2026 美加墨世界杯赛程等待更新"));
     return;
   }
 
@@ -580,12 +580,8 @@ function createFeaturedCard(match) {
   meta.append(
     createPill(match.displayLeague || match.league || "足球赛事", "pill--muted"),
     createPill(
-      match.competitionType === "friendly"
-        ? "友谊赛"
-        : match.isHot
-          ? "热门"
-          : getStatusLabel(matchState.status),
-      match.competitionType === "friendly" || match.isHot ? "pill--gold" : "",
+      match.isHot ? "重点关注" : getStatusLabel(matchState.status),
+      match.isHot ? "pill--gold" : "",
     ),
   );
 

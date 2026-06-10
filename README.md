@@ -1,70 +1,56 @@
 # 绿茵今日
 
-一个轻量、无构建的足球赛事个人主页。当前数据架构为：
+一个轻量、无构建的足球赛事个人主页。当前数据方案已收缩为一条稳定链路：
 
-- Netlify Scheduled Function 定时从 API-Football 同步世界杯赛事
-- Supabase `world_cup_matches` 缓存世界杯赛程
-- Supabase `friendly_matches` 缓存近期国际友谊赛，作为世界杯开赛前的补充数据源
-- 前端优先读取首页聚合 endpoint，不直接请求 API-Football
-- 所有可控展示文案尽量中文化，中文名来自 `data/football-cn-aliases.json`
+```text
+聚合数据 2026 美加墨世界杯 API
+↓
+Netlify Function 后端同步
+↓
+Supabase world_cup_matches 缓存
+↓
+homepage-matches / world-cup-matches endpoint
+↓
+首页只展示世界杯赛事
+```
 
-项目不再抓取中国体彩、Sporttery 或其他网页数据源。
-
-## 数据架构
-
-当前数据流：
-
-1. `netlify/functions/sync-world-cup-matches.js` 调用 API-Football `fixtures?league=1&season=2026`
-2. 同步结果经 `src/lib/matches/providers/worldCupProvider.js` 中文化并写入 Supabase `world_cup_matches`
-3. `netlify/functions/world-cup-matches.js` 从 Supabase 读取世界杯缓存
-4. `netlify/functions/homepage-matches.js` 自动选择展示源
-5. `main.js` 通过 `src/lib/matches/getTodayMatches.js` 优先读取 `/.netlify/functions/homepage-matches`
-6. 如果世界杯和友谊赛缓存都不可用，前端回退到现有 `/api/matches-today`，再不行则展示 mock 数据
+项目不再抓取网页，也不再接入 API-Football、football-data.org、TheSportsDB 或国际友谊赛数据。
 
 ## 核心文件
 
-- `src/lib/matches/worldCupConfig.js`：世界杯 league、season、timezone 配置
-- `src/lib/matches/providers/worldCupProvider.js`：API-Football 世界杯 provider 和 Supabase row adapter
-- `src/lib/matches/providers/friendliesProvider.js`：API-Football 国际友谊赛 provider 和 Supabase row adapter
-- `netlify/functions/sync-world-cup-matches.js`：定时同步世界杯赛事
-- `netlify/functions/world-cup-matches.js`：前端读取世界杯赛事
-- `netlify/functions/sync-friendly-matches.js`：定时同步国际友谊赛
-- `netlify/functions/friendly-matches.js`：读取国际友谊赛缓存
-- `netlify/functions/homepage-matches.js`：首页赛事聚合入口
-- `netlify/functions/search-football-leagues.js`：查询 API-Football league id 的调试函数
-- `data/football-cn-aliases.json`：球队、联赛、状态中文映射
-- `supabase/schema.sql`：`matches` 与 `world_cup_matches` 表结构
+- `src/lib/matches/providers/juheProvider.js`：聚合数据世界杯 provider、字段适配和 Supabase row adapter
+- `netlify/functions/sync-juhe-world-cup-matches.js`：定时同步聚合数据世界杯赛事
+- `netlify/functions/homepage-matches.js`：首页统一赛事入口，只读 `world_cup_matches` 中 `source = 'juhe_worldcup'` 的赛事
+- `netlify/functions/world-cup-matches.js`：世界杯赛事读取接口
+- `supabase/schema.sql`：Supabase 表结构和兼容字段
 - `src/lib/matches/getTodayMatches.js`：前端统一读取入口
-- `main.js` / `styles.css`：首页渲染与样式
+- `main.js` / `styles.css`：首页渲染和样式
 
 ## 环境变量
 
-复制 `.env.example` 并按需填写：
+Netlify 需要配置：
 
 ```bash
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+JUHE_API_KEY=
+JUHE_WORLD_CUP_API_URL=
+JUHE_SYNC_COOLDOWN_MINUTES=40
+```
+
+可保留但前端不会暴露：
+
+```bash
 SUPABASE_ANON_KEY=
-FOOTBALL_API_KEY=
-API_FOOTBALL_KEY=
-FOOTBALL_API_BASE_URL=https://v3.football.api-sports.io
-API_FOOTBALL_WORLD_CUP_LEAGUE_ID=1
-API_FOOTBALL_WORLD_CUP_SEASON=2026
-API_FOOTBALL_TIMEZONE=Asia/Shanghai
-FRIENDLIES_LEAGUE_ID=
-FRIENDLIES_SEASON=2026
-FRIENDLIES_LOOKBACK_DAYS=3
-FRIENDLIES_LOOKAHEAD_DAYS=21
-FRIENDLIES_NEXT_LIMIT=20
 ```
 
 说明：
 
-- `SUPABASE_SERVICE_ROLE_KEY` 只在 Netlify Function 服务端使用
-- `API_FOOTBALL_KEY` 是推荐变量名；代码也兼容旧的 `FOOTBALL_API_KEY`
-- 默认世界杯 league id 是 `1`，season 是 `2026`
-- `FRIENDLIES_LEAGUE_ID` 需要用 `search-football-leagues` 查询后填写；为空时友谊赛同步会稳定返回 `missing_config`
-- 前端不会暴露任何 API key
+- `JUHE_API_KEY` 只在 Netlify Function 服务端使用。
+- `JUHE_WORLD_CUP_API_URL` 填聚合数据提供的 2026 美加墨世界杯接口地址。
+- 默认 API key 参数名为聚合数据常见的 `key`。
+- 聚合数据免费额度为每天 50 次，`JUHE_SYNC_COOLDOWN_MINUTES=40` 会让同步函数在 40 分钟内已有缓存时自动跳过。
+- 定时任务每 40 分钟运行一次，自动请求最多约 36 次/天，保留约 14 次给手动强制刷新或异常重试。
 
 ## Supabase
 
@@ -72,121 +58,74 @@ FRIENDLIES_NEXT_LIMIT=20
 
 [supabase/schema.sql](/Users/fuyan/Documents/个人网站/supabase/schema.sql)
 
-该 SQL 会创建：
+核心缓存表仍使用 `world_cup_matches`。本次收缩后关键字段为：
 
-- `matches`：保留现有通用赛事缓存
-- `world_cup_matches`：世界杯赛事缓存
-- `friendly_matches`：国际友谊赛缓存
-- `idx_world_cup_matches_kickoff_time`
-- `idx_world_cup_matches_status`
+- `source`
+- `source_match_id`
+- `match_time`
+- `cn_league_name`
+- `cn_home_name`
+- `cn_away_name`
+- `home_score`
+- `away_score`
+- `status`
+- `round_name`
+- `venue`
+- `priority`
+- `last_synced_at`
+- `raw_data`
+
+`source` 当前只使用：
+
+```text
+juhe_worldcup
+```
+
+如果库里曾经写入过测试数据，可以安全清理非 Juhe 世界杯来源：
+
+```sql
+delete from world_cup_matches
+where source is distinct from 'juhe_worldcup';
+```
+
+如果你不想删除历史数据，也可以只让代码层忽略它们；当前首页只读取 `source = 'juhe_worldcup'`。
 
 ## Netlify
 
-`netlify.toml` 已配置：
+`netlify.toml` 保持原部署方式。关键函数：
 
-- Functions 目录：`netlify/functions`
-- `/api/matches-today` -> `/.netlify/functions/matches-today`
-- `/api/world-cup-matches` -> `/.netlify/functions/world-cup-matches`
-- `/api/friendly-matches` -> `/.netlify/functions/friendly-matches`
-- `/api/homepage-matches` -> `/.netlify/functions/homepage-matches`
-
-世界杯同步函数：
+手动同步聚合数据世界杯：
 
 ```text
-/.netlify/functions/sync-world-cup-matches
+/.netlify/functions/sync-juhe-world-cup-matches
 ```
 
-世界杯读取函数：
+如果确实需要立刻刷新，可手动强制同步：
+
+```text
+/.netlify/functions/sync-juhe-world-cup-matches?force=1
+```
+
+首页读取：
+
+```text
+/.netlify/functions/homepage-matches
+```
+
+世界杯赛事读取：
 
 ```text
 /.netlify/functions/world-cup-matches
 ```
 
-## 世界杯未开始时展示国际友谊赛
+旧函数状态：
 
-世界杯数据仍然来自：
+- `sync-world-cup-matches`：已停用 API-Football 同步
+- `sync-friendly-matches`：已停用国际友谊赛同步
+- `friendly-matches`：已停用国际友谊赛读取
+- `search-football-leagues`：已停用 API-Football league 搜索
 
-```text
-/.netlify/functions/sync-world-cup-matches
-```
-
-国际友谊赛来自：
-
-```text
-/.netlify/functions/sync-friendly-matches
-```
-
-首页通过聚合 endpoint 自动选择展示源：
-
-```text
-/.netlify/functions/homepage-matches
-```
-
-展示优先级：
-
-```text
-世界杯近期赛事 > 国际友谊赛 > mock 演示数据
-```
-
-友谊赛环境变量：
-
-```bash
-FRIENDLIES_LEAGUE_ID=
-FRIENDLIES_SEASON=2026
-FRIENDLIES_LOOKBACK_DAYS=3
-FRIENDLIES_LOOKAHEAD_DAYS=21
-FRIENDLIES_NEXT_LIMIT=20
-```
-
-确认 API-Football 里的友谊赛 league id：
-
-```text
-/.netlify/functions/search-football-leagues?search=friendlies
-```
-
-确认后把查到的 id 填入 Netlify 环境变量：
-
-```bash
-FRIENDLIES_LEAGUE_ID=查询到的友谊赛 league id
-```
-
-手动触发友谊赛同步：
-
-```text
-/.netlify/functions/sync-friendly-matches
-```
-
-查看友谊赛缓存：
-
-```text
-/.netlify/functions/friendly-matches
-```
-
-查看首页聚合结果：
-
-```text
-/.netlify/functions/homepage-matches
-```
-
-定时同步 cron 为 `0 */6 * * *`，即每 6 小时同步一次，控制 API-Football 免费额度消耗。
-
-## 本地运行
-
-```bash
-npm install
-npm run build
-npm run dev
-```
-
-静态预览地址：
-
-```text
-http://127.0.0.1:4173/
-```
-
-只用 `python3 -m http.server 4173` 预览时，本地没有 Netlify Functions，前端会自动回退到备用赛事数据或 mock 数据。
-
-## 手动测试
+## 本地测试
 
 构建检查：
 
@@ -195,48 +134,65 @@ npm run build
 node scripts/build-check.mjs
 ```
 
-手动触发线上同步：
+静态预览：
 
-```text
-https://football-matchday-homepage.netlify.app/.netlify/functions/sync-world-cup-matches
+```bash
+python3 -m http.server 4173
 ```
 
-查看线上世界杯缓存：
+打开：
 
 ```text
-https://football-matchday-homepage.netlify.app/.netlify/functions/world-cup-matches
+http://127.0.0.1:4173/
 ```
 
-查看线上首页聚合结果：
+本地静态预览没有 Netlify Functions 时，页面会显示世界杯赛程等待更新，不会混入其他赛事。
+
+## 线上验证
+
+1. 在 Netlify 配置 `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`JUHE_API_KEY`、`JUHE_WORLD_CUP_API_URL`。
+2. 在 Supabase 执行 `supabase/schema.sql`。
+3. 触发同步：
+
+```text
+https://football-matchday-homepage.netlify.app/.netlify/functions/sync-juhe-world-cup-matches
+```
+
+为了节省免费次数，普通同步在 40 分钟冷却期内会跳过。首次接入或确认要刷新时可用：
+
+```text
+https://football-matchday-homepage.netlify.app/.netlify/functions/sync-juhe-world-cup-matches?force=1
+```
+
+4. 查看首页接口：
 
 ```text
 https://football-matchday-homepage.netlify.app/.netlify/functions/homepage-matches
 ```
 
-## 中文映射
-
-中文映射在：
-
-[data/football-cn-aliases.json](/Users/fuyan/Documents/个人网站/data/football-cn-aliases.json)
-
-规则：
-
-- 有中文映射时显示中文
-- 没有中文映射时显示 API-Football 原名
-- 缺少映射不会导致页面报错
+5. 首页应只出现 `source = juhe_worldcup` 的 2026 美加墨世界杯赛事。
 
 ## 兜底行为
 
-- API-Football 同步失败：不会清空 Supabase 旧缓存
-- 世界杯近期赛事为空：首页聚合入口会展示近期国际友谊赛
-- 世界杯和友谊赛都为空：前端回退 `/api/matches-today`
-- 所有接口失败：前端展示 mock 数据，不白屏
+- 聚合数据暂未返回赛事：首页显示“2026 美加墨世界杯赛程等待更新。”
+- Supabase 暂无缓存：首页不展示其他赛事。
+- 旧 API-Football、国际友谊赛和多 API fallback 都不会参与首页展示。
 
 ## 上传二维码
 
-把二维码原图放到 `assets/qr.PNG`。如果图片不存在，首页会显示“二维码待上传”的占位。
+二维码原图路径：
 
-页面会优先加载轻量展示图 `assets/qr-display.png`，点击保存时仍使用原图 `assets/qr.PNG`。上传或替换二维码后，可以手动生成展示图：
+```text
+assets/qr.PNG
+```
+
+页面优先加载轻量展示图：
+
+```text
+assets/qr-display.png
+```
+
+更新二维码后可运行：
 
 ```bash
 node scripts/prepare-qr-assets.mjs

@@ -1,11 +1,9 @@
 import { jsonResponse } from "../../src/lib/matches/server.js";
-import { worldCupRowToClientMatch } from "../../src/lib/matches/providers/worldCupProvider.js";
-import { getWorldCupConfig } from "../../src/lib/matches/worldCupConfig.js";
+import { juheRowToClientMatch } from "../../src/lib/matches/providers/juheProvider.js";
 import { createServerSupabaseClient, hasServerSupabaseEnv } from "../../src/lib/supabase.js";
 
 export default async function worldCupMatches(request) {
   const url = new URL(request.url);
-  const config = getWorldCupConfig(process.env);
   const limit = clampNumber(url.searchParams.get("limit"), 1, 100, 64);
   const status = url.searchParams.get("status") || "all";
 
@@ -13,7 +11,7 @@ export default async function worldCupMatches(request) {
     return jsonResponse({
       success: false,
       sourceStatus: "error",
-      sourceLabel: "世界杯缓存",
+      sourceLabel: "聚合数据世界杯缓存",
       updatedAt: null,
       matches: [],
       message: "未配置 Supabase，无法读取世界杯缓存。",
@@ -25,9 +23,9 @@ export default async function worldCupMatches(request) {
     let query = supabase
       .from("world_cup_matches")
       .select("*")
-      .eq("league_id", config.leagueId)
-      .eq("season", config.season)
-      .order("kickoff_time", { ascending: true })
+      .eq("source", "juhe_worldcup")
+      .order("priority", { ascending: false })
+      .order("match_time", { ascending: true })
       .limit(limit);
 
     query = applyStatusFilter(query, status);
@@ -38,10 +36,10 @@ export default async function worldCupMatches(request) {
       throw error;
     }
 
-    const matches = (data || []).map(worldCupRowToClientMatch);
+    const matches = (data || []).map(juheRowToClientMatch);
     const latestUpdatedAt =
       (data || [])
-        .map((row) => row.updated_at || row.fetched_at)
+        .map((row) => row.updated_at || row.last_synced_at || row.fetched_at)
         .filter(Boolean)
         .sort()
         .at(-1) || null;
@@ -49,16 +47,16 @@ export default async function worldCupMatches(request) {
     return jsonResponse({
       success: true,
       sourceStatus: "cache",
-      sourceLabel: "世界杯赛程缓存",
+      sourceLabel: "聚合数据世界杯缓存",
       updatedAt: latestUpdatedAt,
       matches,
-      message: matches.length ? "" : "暂无世界杯缓存赛事，等待同步。",
+      message: matches.length ? "" : "2026 美加墨世界杯赛程等待更新。",
     });
   } catch (error) {
     return jsonResponse({
       success: false,
       sourceStatus: "error",
-      sourceLabel: "世界杯缓存",
+      sourceLabel: "聚合数据世界杯缓存",
       updatedAt: null,
       matches: [],
       message: "世界杯赛事数据暂时不可用，请稍后查看。",
@@ -68,15 +66,15 @@ export default async function worldCupMatches(request) {
 
 function applyStatusFilter(query, status) {
   if (status === "finished") {
-    return query.in("status_short", ["FT", "AET", "PEN"]);
+    return query.in("status", ["finished", "ft", "FT", "已结束", "完场"]);
   }
 
   if (status === "live") {
-    return query.in("status_short", ["1H", "2H", "HT", "ET", "BT", "P"]);
+    return query.in("status", ["live", "1h", "2h", "HT", "进行中", "比赛中"]);
   }
 
   if (status === "upcoming") {
-    return query.in("status_short", ["NS", "TBD"]);
+    return query.in("status", ["not_started", "ns", "NS", "scheduled", "未开始", "未开赛"]);
   }
 
   return query;

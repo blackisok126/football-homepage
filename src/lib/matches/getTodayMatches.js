@@ -1,6 +1,3 @@
-import { createMockMatchesResponse } from "./mockMatches.js";
-
-const TODAY_MATCHES_API = "/api/matches-today";
 const HOMEPAGE_MATCHES_API = "/.netlify/functions/homepage-matches";
 const WORLD_CUP_MATCHES_API = "/.netlify/functions/world-cup-matches";
 
@@ -21,20 +18,8 @@ export async function getTodayMatchesPayload(fetchImpl = fetch) {
     return worldCupPayload;
   }
 
-  const fallbackPayload = await fetchMatchesPayload(fetchImpl, TODAY_MATCHES_API);
-
-  if (fallbackPayload?.success && Array.isArray(fallbackPayload.matches)) {
-    return {
-      ...fallbackPayload,
-      message:
-        worldCupPayload?.message ||
-        fallbackPayload.message ||
-        "世界杯赛事缓存暂时不可用，当前展示备用赛事数据。",
-    };
-  }
-
-  return createMockMatchesResponse(
-    "赛事数据暂时不可用，请稍后查看。当前为演示数据，接入正式数据源后自动更新。",
+  return createEmptyWorldCupPayload(
+    worldCupPayload?.message || "2026 美加墨世界杯赛程等待更新。",
   );
 }
 
@@ -66,4 +51,18 @@ async function fetchMatchesPayload(fetchImpl, endpoint) {
 export async function getTodayMatches(fetchImpl = fetch) {
   const payload = await getTodayMatchesPayload(fetchImpl);
   return payload.matches;
+}
+
+function createEmptyWorldCupPayload(message) {
+  return {
+    success: true,
+    sourceStatus: "cache",
+    sourceLabel: "聚合数据世界杯缓存",
+    displaySource: "juhe_worldcup",
+    displayTitle: "2026 美加墨世界杯赛程",
+    displayNotice: message,
+    updatedAt: new Date().toISOString(),
+    matches: [],
+    message,
+  };
 }

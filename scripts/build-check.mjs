@@ -7,13 +7,10 @@ const filesToCheck = [
   "scripts/build-check.mjs",
   "src/lib/matches/types.js",
   "src/lib/matches/matchAdapter.js",
-  "src/lib/matches/worldCupConfig.js",
   "src/lib/matches/mockMatches.js",
   "src/lib/matches/getTodayMatches.js",
   "src/lib/matches/providers/mockProvider.js",
-  "src/lib/matches/providers/apiFootballProvider.js",
-  "src/lib/matches/providers/friendliesProvider.js",
-  "src/lib/matches/providers/worldCupProvider.js",
+  "src/lib/matches/providers/juheProvider.js",
   "src/lib/matches/server.js",
   "src/lib/supabase.js",
   "netlify/functions/matches-today.js",
@@ -22,6 +19,7 @@ const filesToCheck = [
   "netlify/functions/search-football-leagues.js",
   "netlify/functions/sync-friendly-matches.js",
   "netlify/functions/world-cup-matches.js",
+  "netlify/functions/sync-juhe-world-cup-matches.js",
   "netlify/functions/sync-world-cup-matches.js",
   "netlify/functions/sync-matches.js"
 ];

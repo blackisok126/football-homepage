@@ -16,6 +16,23 @@
  * @property {string} source
  * @property {MatchSourceStatus} sourceStatus
  * @property {string} updatedAt
+ *
+ * @typedef {Object} SupplementalMatch
+ * @property {"juhe_worldcup" | "demo"} source
+ * @property {string} sourceFixtureId
+ * @property {string} leagueName
+ * @property {string} cnLeagueName
+ * @property {string} homeTeamName
+ * @property {string} cnHomeName
+ * @property {string} awayTeamName
+ * @property {string} cnAwayName
+ * @property {string} matchTime
+ * @property {MatchStatus} status
+ * @property {string} venue
+ * @property {string} displayGroup
+ * @property {number} priority
+ * @property {boolean} isFeatured
+ * @property {string} lastSyncedAt
  */
 
 export const MATCH_STATUS = Object.freeze({
